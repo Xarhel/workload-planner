@@ -200,15 +200,6 @@
             transition: width 0.3s;
         }
         
-        .suggestion-card {
-            border-left: 4px solid #10b981;
-            transition: transform 0.2s;
-        }
-        
-        .suggestion-card:hover {
-            transform: translateY(-2px);
-        }
-        
         .project-card {
             background: white;
             border-radius: 12px;
@@ -627,8 +618,6 @@
                         @click="currentView = 'skills'">Compétences</button>
                 <button class="nav-btn" :class="currentView === 'projects' && 'active'" 
                         @click="currentView = 'projects'">Projets</button>
-                <button class="nav-btn" :class="currentView === 'optimizer' && 'active'" 
-                        @click="currentView = 'optimizer'">Optimiseur IA</button>
                 <button class="nav-btn" :class="currentView === 'planning' && 'active'" 
                         @click="currentView = 'planning'">Planning</button>
             </div>
@@ -655,19 +644,14 @@
 
                 <div class="grid grid-2" style="margin-top: 1rem;">
                     <div class="card">
-                        <h3>⚡ Optimisations IA</h3>
-                        <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;" x-text="optimizationCount"></div>
-                        <p class="text-sm text-gray-600">Suggestions générées</p>
-                    </div>
-                    <div class="card">
-                        <h3>📊 Utilisation Moyenne</h3>
+                        <h3>📊 Utilisation Moyenne pour les 2 prochains mois</h3>
                         <div style="font-size: 2rem; font-weight: bold; color: #06b6d4;" x-text="getAverageUtilization() + '%'"></div>
                         <p class="text-sm text-gray-600">Taux d'occupation</p>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>📊 Charge de travail par employé</h3>
+                    <h3>📊 Charge de travail par employé pour les 2 prochains mois</h3>
                     <div class="grid grid-2" style="gap: 1rem; margin-top: 1rem;">
                         <template x-for="employee in employees" :key="employee.id">
                             <div>
@@ -1099,7 +1083,7 @@
                     <!-- Stats Planning -->
                     <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div class="card" style="margin: 0; text-align: center;">
-                            <h4 style="color: #10b981;">Utilisation Moyenne</h4>
+                            <h4 style="color: #10b981;">Utilisation Moyenne pour les 2 prochains mois</h4>
                             <div style="font-size: 1.5rem; font-weight: bold;" x-text="getAverageUtilization() + '%'"></div>
                         </div>
                         <div class="card" style="margin: 0; text-align: center;">
@@ -1110,33 +1094,6 @@
                             <h4 style="color: #3b82f6;">Revenus Planifiés</h4>
                             <div style="font-size: 1.5rem; font-weight: bold;" x-text="getPlannedRevenue() + '€'"></div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div x-show="currentView === 'optimizer'" x-transition>
-                <div class="card">
-                    <h3>🤖 Optimiseur IA - Suggestions d'Affectation</h3>
-                    <template x-if="suggestions.length === 0">
-                        <p>Sélectionnez un projet pour voir les suggestions d'affectation optimisées.</p>
-                    </template>
-                    
-                    <div class="grid grid-2">
-                        <template x-for="suggestion in suggestions" :key="suggestion.id">
-                            <div class="card suggestion-card" style="margin: 0;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                    <h4 x-text="suggestion.employee"></h4>
-                                    <span class="badge badge-success" x-text="suggestion.score + '% match'"></span>
-                                </div>
-                                <p><strong>Projet:</strong> <span x-text="suggestion.project"></span></p>
-                                <p><strong>Raisons:</strong></p>
-                                <ul>
-                                    <template x-for="reason in suggestion.reasons">
-                                        <li x-text="reason"></li>
-                                    </template>
-                                </ul>
-                                <button class="btn btn-success" style="margin-top: 1rem;">✅ Assigner</button>
-                            </div>
-                        </template>
                     </div>
                 </div>
             </div>
@@ -1283,10 +1240,8 @@
                 employees: [],
                 projects: [],
                 skills: [],
-                suggestions: [],
                 assignments: {}, // Structure: {employeeId: {weekId: {dayIndex: {project: 'nom', load: 0.5}}}}
                 planningWeeks: [],
-                optimizationCount: 0,
                 showEmployeeModal: false,
                 showProjectModal: false,
                 showSkillModal: false,
@@ -1518,86 +1473,44 @@
                     return skill ? skill.name : 'Compétence inconnue';
                 },
 
-                optimizeProject(projectId) {
-                    const project = this.projects.find(p => p.id === projectId);
-                    if (!project) return;
-
-                    // Algorithme simple de matching
-                    const matches = this.employees.map(emp => {
-                        const skillMatch = this.calculateSkillMatch(emp.skills, project.requiredSkills);
-                        const costEfficiency = this.calculateCostEfficiency(emp.hourlyRate, project.budget, project.duration);
-                        const availability = Math.random() * 100; // Simulation
-
-                        const score = Math.round((skillMatch * 0.5 + costEfficiency * 0.3 + availability * 0.2));
-
-                        return {
-                            id: Date.now() + emp.id,
-                            employee: emp.name,
-                            project: project.name,
-                            score: score,
-                            reasons: this.generateReasons(skillMatch, costEfficiency, availability)
-                        };
-                    }).sort((a, b) => b.score - a.score).slice(0, 3);
-
-                    this.suggestions = matches;
-                    this.optimizationCount += matches.length;
-                    this.currentView = 'optimizer';
-                },
-
-                calculateSkillMatch(empSkills, reqSkills) {
-                    let totalScore = 0;
-                    let maxScore = reqSkills.length * 100; // Maximum possible score
-                    
-                    reqSkills.forEach(reqSkill => {
-                        const matchingSkill = empSkills.find(empSkill => {
-                            const skillName = this.getSkillName(empSkill.skillId);
-                            return skillName.toLowerCase().includes(reqSkill.toLowerCase());
-                        });
-                        
-                        if (matchingSkill) {
-                            // Base score for having the skill
-                            let skillScore = 50;
-                            
-                            // Bonus based on skill level
-                            switch (matchingSkill.level) {
-                                case 'senior':
-                                    skillScore = 100;
-                                    break;
-                                case 'intermediate':
-                                    skillScore = 75;
-                                    break;
-                                case 'junior':
-                                    skillScore = 50;
-                                    break;
-                            }
-                            
-                            totalScore += skillScore;
-                        }
-                    });
-                    
-                    return maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
-                },
-
-                calculateCostEfficiency(hourlyRate, budget, duration) {
-                    const estimatedCost = hourlyRate * duration * 8; // 8h/jour
-                    const efficiency = 1 - (estimatedCost / budget);
-                    return Math.max(0, efficiency * 100);
-                },
-
-                generateReasons(skillMatch, costEfficiency, availability) {
-                    const reasons = [];
-                    if (skillMatch > 80) reasons.push('Excellent match de compétences');
-                    else if (skillMatch > 50) reasons.push('Bonnes compétences techniques');
-                    
-                    if (costEfficiency > 70) reasons.push('Coût optimisé pour le budget');
-                    if (availability > 70) reasons.push('Forte disponibilité');
-                    
-                    return reasons.length ? reasons : ['Profil intéressant à considérer'];
-                },
-
                 getEmployeeLoad(employeeId) {
-                    // Simulation de charge de travail
-                    return Math.floor(Math.random() * 100);
+                    let totalLoad = 0;
+                    let totalDays = 0;
+                    
+                    // Calculate for the next 60 days (2 months)
+                    const today = new Date();
+                    const endDate = new Date(today);
+                    endDate.setDate(today.getDate() + 60);
+                    
+                    if (this.assignments[employeeId]) {
+                        this.planningWeeks.forEach(week => {
+                            if (this.assignments[employeeId][week.id]) {
+                                // Only count weekdays (Monday-Friday) for the next 60 days
+                                for (let dayIndex = 0; dayIndex < 5; dayIndex++) {
+                                    // Calculate the actual date for this day
+                                    const weekStartDate = new Date(today);
+                                    weekStartDate.setDate(today.getDate() + ((week.id - 1) * 7));
+                                    const dayDate = new Date(weekStartDate);
+                                    dayDate.setDate(weekStartDate.getDate() + dayIndex);
+                                    
+                                    // Only include days within the next 60 days
+                                    if (dayDate >= today && dayDate <= endDate) {
+                                        const assignment = this.assignments[employeeId][week.id][dayIndex];
+                                        if (assignment && assignment.load) {
+                                            totalLoad += assignment.load;
+                                        }
+                                        totalDays++;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    if (totalDays === 0) return 0;
+                    
+                    // Calculate average load as percentage
+                    const avgLoad = (totalLoad / totalDays) * 100;
+                    return Math.round(avgLoad);
                 },
 
                 resetEmployeeForm() {
@@ -1633,7 +1546,8 @@
                     const today = new Date();
                     const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
                     
-                    for (let w = 0; w < 8; w++) {
+                    // Generate enough weeks to cover 60 days (about 9 weeks)
+                    for (let w = 0; w < 9; w++) {
                         const weekStart = new Date(today);
                         weekStart.setDate(today.getDate() + (w * 7));
                         
@@ -1959,13 +1873,27 @@
                     let totalLoad = 0;
                     let totalSlots = 0;
                     
+                    // Calculate for the next 60 days (2 months)
+                    const today = new Date();
+                    const endDate = new Date(today);
+                    endDate.setDate(today.getDate() + 60);
+                    
                     this.employees.forEach(emp => {
                         this.planningWeeks.forEach(week => {
-                            // Seulement les jours de travail (Lun-Ven)
+                            // Only count weekdays (Monday-Friday) for the next 60 days
                             for (let day = 0; day < 5; day++) {
-                                const assignment = this.assignments[emp.id]?.[week.id]?.[day];
-                                totalLoad += assignment ? assignment.load : 0;
-                                totalSlots++;
+                                // Calculate the actual date for this day
+                                const weekStartDate = new Date(today);
+                                weekStartDate.setDate(today.getDate() + ((week.id - 1) * 7));
+                                const dayDate = new Date(weekStartDate);
+                                dayDate.setDate(weekStartDate.getDate() + day);
+                                
+                                // Only include days within the next 60 days
+                                if (dayDate >= today && dayDate <= endDate) {
+                                    const assignment = this.assignments[emp.id]?.[week.id]?.[day];
+                                    totalLoad += assignment ? assignment.load : 0;
+                                    totalSlots++;
+                                }
                             }
                         });
                     });

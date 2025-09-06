@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staffing Optimizer - Prototype</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .nav-btn {
+            padding: 0.5rem 1rem;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .nav-btn:hover {
+            background: #cbd5e1;
+        }
+        
+        .nav-btn.active:hover {
+            background: #2563eb;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+        
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #e5e7eb;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin: 0.125rem;
+        }
+        
+        .badge-skill {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .badge-skill-junior {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .badge-skill-intermediate {
+            background: #fed7aa;
+            color: #c2410c;
+        }
+        
+        .badge-skill-senior {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table th {
+            font-weight: 600;
+            background: #f9fafb;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .suggestion-card {
+            border-left: 4px solid #10b981;
+            transition: transform 0.2s;
+        }
+        
+        .suggestion-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .project-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            border-color: #e2e8f0;
+        }
+        
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        
+        .project-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 1rem 0;
+            line-height: 1.3;
+        }
+        
+        .project-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .project-meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .project-meta-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+        
+        .project-meta-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .project-skills {
+            margin-bottom: 1.5rem;
+        }
+        
+        .project-skills-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+        
+        .project-skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .project-skill-badge {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .project-skill-badge:hover {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #3b82f6;
+            color: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+        
+        .project-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .project-btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        
+        .project-btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .project-btn-danger {
+            background: #f8fafc;
+            color: #ef4444;
+            border: 1px solid #fee2e2;
+        }
+        
+        .project-btn-danger:hover {
+            background: #fef2f2;
+            border-color: #fecaca;
+            transform: translateY(-1px);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .skill-builder {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .skill-item {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .skill-input {
+            flex: 2;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .skill-level-select {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .skill-remove-btn {
+            width: 30px;
+            height: 30px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .add-skill-btn {
+            padding: 0.5rem 1rem;
+            background: #e5e7eb;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .add-skill-btn:hover {
+            background: #d1d5db;
+        }
+        
+        .planning-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: white;
+        }
+        
+        .planning-table th,
+        .planning-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem 0.25rem;
+            text-align: center;
+            min-width: 80px;
+        }
+        
+        .planning-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .planning-table th.week-header {
+            background: #3b82f6 !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        .planning-table .employee-name {
+            position: sticky;
+            left: 0;
+            background: #f8fafc;
+            font-weight: 600;
+            text-align: left;
+            min-width: 150px;
+            z-index: 5;
+        }
+        
+        .planning-cell {
+            position: relative;
+            height: 40px;
+            background: #f9fafb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .planning-cell:hover {
+            background: #e5e7eb;
+        }
+        
+        .planning-cell.assigned {
+            background: #10b981;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .planning-cell.partial {
+            background: #f59e0b;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .planning-cell.overbooked {
+            background: #ef4444;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .planning-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .planning-legend {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        
+        .week-header {
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .planning-table th.day-header {
+            background: #64748b !important;
+            color: white !important;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .weekend {
+            background: #f1f5f9;
+        }
+        
+        .skill-builder {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 1rem;
+            background: #f9fafb;
+        }
+        
+        .skill-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .skill-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+        }
+        
+        .skill-input:focus {
+            outline: none;
+        }
+        
+        .skill-level-select {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 12px;
+            background: white;
+        }
+        
+        .skill-remove-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0.25rem 0.5rem;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .add-skill-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div x-data="staffingApp()" x-init="init()">
+        <!-- Header -->
+        <div class="header">
+            <div class="container">
+                <h1>🎯 Staffing Optimizer</h1>
+                <p>Optimisez vos affectations d'équipe avec l'IA</p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="container">
+            <div class="nav">
+                <button class="nav-btn" :class="currentView === 'dashboard' && 'active'" 
+                        @click="currentView = 'dashboard'">Dashboard</button>
+                <button class="nav-btn" :class="currentView === 'employees' && 'active'" 
+                        @click="currentView = 'employees'">Employés</button>
+                <button class="nav-btn" :class="currentView === 'skills' && 'active'" 
+                        @click="currentView = 'skills'">Compétences</button>
+                <button class="nav-btn" :class="currentView === 'projects' && 'active'" 
+                        @click="currentView = 'projects'">Projets</button>
+                <button class="nav-btn" :class="currentView === 'optimizer' && 'active'" 
+                        @click="currentView = 'optimizer'">Optimiseur IA</button>
+                <button class="nav-btn" :class="currentView === 'planning' && 'active'" 
+                        @click="currentView = 'planning'">Planning</button>
+            </div>
+
+            <!-- Dashboard View -->
+            <div x-show="currentView === 'dashboard'" x-transition>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <h3>👥 Employés</h3>
+                        <div style="font-size: 2rem; font-weight: bold; color: #3b82f6;" x-text="employees.length"></div>
+                        <p class="text-sm text-gray-600">Total des ressources</p>
+                    </div>
+                    <div class="card">
+                        <h3>🛠️ Compétences</h3>
+                        <div style="font-size: 2rem; font-weight: bold; color: #8b5cf6;" x-text="skills.length"></div>
+                        <p class="text-sm text-gray-600">Compétences disponibles</p>
+                    </div>
+                    <div class="card">
+                        <h3>📋 Projets</h3>
+                        <div style="font-size: 2rem; font-weight: bold; color: #10b981;" x-text="projects.length"></div>
+                        <p class="text-sm text-gray-600">Projets actifs</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 1rem;">
+                    <div class="card">
+                        <h3>⚡ Optimisations IA</h3>
+                        <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;" x-text="optimizationCount"></div>
+                        <p class="text-sm text-gray-600">Suggestions générées</p>
+                    </div>
+                    <div class="card">
+                        <h3>📊 Utilisation Moyenne</h3>
+                        <div style="font-size: 2rem; font-weight: bold; color: #06b6d4;" x-text="getAverageUtilization() + '%'"></div>
+                        <p class="text-sm text-gray-600">Taux d'occupation</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Charge de travail par employé</h3>
+                    <div class="grid grid-2" style="gap: 1rem; margin-top: 1rem;">
+                        <template x-for="employee in employees" :key="employee.id">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span x-text="employee.name"></span>
+                                    <span x-text="getEmployeeLoad(employee.id) + '%'"></span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" :style="`width: ${getEmployeeLoad(employee.id)}%`"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employees View -->
+            <div x-show="currentView === 'employees'" x-transition>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>👥 Gestion des Employés</h3>
+                        <button class="btn btn-primary" @click="showEmployeeModal = true">+ Ajouter</button>
+                    </div>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Compétences</th>
+                                <th>Charge</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="employee in employees" :key="employee.id">
+                                <tr>
+                                    <td x-text="employee.name"></td>
+                                    <td>
+                                        <template x-for="skill in employee.skills">
+                                            <span 
+                                                class="badge" 
+                                                :class="'badge-skill-' + skill.level" 
+                                                x-text="getSkillName(skill.skillId) + ' (' + getSkillLevelLabel(skill.level) + ')'"
+                                            ></span>
+                                        </template>
+                                    </td>
+                                    <td x-text="getEmployeeLoad(employee.id) + '%'"></td>
+                                    <td>
+                                        <button class="btn btn-danger" @click="removeEmployee(employee.id)">Suppr</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Skills View -->
+            <div x-show="currentView === 'skills'" x-transition>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>🛠️ Gestion des Compétences</h3>
+                        <button class="btn btn-primary" @click="showSkillModal = true">+ Ajouter</button>
+                    </div>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nom de la compétence</th>
+                                <th>Description</th>
+                                <th>Employés avec cette compétence</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="skill in skills" :key="skill.id">
+                                <tr>
+                                    <td>
+                                        <span class="badge badge-skill" x-text="skill.name"></span>
+                                    </td>
+                                    <td x-text="skill.description || 'Aucune description'"></td>
+                                    <td>
+                                        <span x-text="getEmployeesWithSkill(skill.id).length + ' employé(s)'"></span>
+                                        <template x-if="getEmployeesWithSkill(skill.id).length > 0">
+                                            <div style="margin-top: 0.25rem;">
+                                                <template x-for="emp in getEmployeesWithSkill(skill.id).slice(0, 3)">
+                                                    <span class="badge" x-text="emp.name" style="margin-right: 0.25rem;"></span>
+                                                </template>
+                                                <template x-if="getEmployeesWithSkill(skill.id).length > 3">
+                                                    <span class="badge" x-text="'...'"></span>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-primary" style="background: #f59e0b; padding: 0.25rem 0.5rem; font-size: 0.75rem;" 
+                                                @click="editSkill(skill)">Éditer</button>
+                                        <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" 
+                                                @click="removeSkill(skill.id)">Suppr</button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template x-if="skills.length === 0">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 2rem; color: #64748b;">
+                                        Aucune compétence définie. Commencez par ajouter quelques compétences.
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Projects View -->
+            <div x-show="currentView === 'projects'" x-transition>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>📋 Gestion des Projets</h3>
+                        <button class="btn btn-primary" @click="showProjectModal = true">+ Ajouter</button>
+                    </div>
+                    
+                    <div class="grid grid-2">
+                        <template x-for="project in projects" :key="project.id">
+                            <div class="project-card">
+                                <h4 class="project-title" x-text="project.name"></h4>
+                                
+                                <div class="project-meta">
+                                    <div class="project-meta-item">
+                                        <span class="project-meta-label">Durée</span>
+                                        <span class="project-meta-value" x-text="project.duration + ' jours'"></span>
+                                    </div>
+                                    <div class="project-meta-item">
+                                        <span class="project-meta-label">Budget</span>
+                                        <span class="project-meta-value" x-text="project.budget.toLocaleString() + '€'"></span>
+                                    </div>
+                                    <div class="project-meta-item">
+                                        <span class="project-meta-label">Personnes assignées</span>
+                                        <span class="project-meta-value" x-text="getAssignedEmployeesCount(project.name) + ' personne' + (getAssignedEmployeesCount(project.name) > 1 ? 's' : '')"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="project-skills">
+                                    <span class="project-skills-label">Compétences requises</span>
+                                    <div class="project-skills-list">
+                                        <template x-for="skill in project.requiredSkills">
+                                            <span class="project-skill-badge" x-text="skill"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <div class="project-actions">
+                                    <button class="project-btn project-btn-primary" @click="openProjectDetail(project.id)">
+                                        📋 Affectations
+                                    </button>
+                                    <button class="project-btn project-btn-danger" @click="removeProject(project.id)">
+                                        🗑️ Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Detail View -->
+            <div x-show="projectDetailView" x-transition>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3>📋 Affectations du Projet</h3>
+                        <button class="btn" @click="closeProjectDetail()">← Retour aux projets</button>
+                    </div>
+                    
+                    <!-- Project Header Info -->
+                    <template x-if="currentProjectId">
+                        <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;" x-data="{ project: projects.find(p => p.id === currentProjectId) }">
+                            <h4 x-text="project.name" style="margin-bottom: 1rem; color: #1e293b;"></h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <span style="font-weight: 600; color: #64748b;">Durée:</span>
+                                    <span x-text="project.duration + ' jours'" style="margin-left: 0.5rem;"></span>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 600; color: #64748b;">Budget:</span>
+                                    <span x-text="project.budget.toLocaleString() + '€'" style="margin-left: 0.5rem;"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <span style="font-weight: 600; color: #64748b;">Compétences requises:</span>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <template x-if="project.skillRequirements && project.skillRequirements.length > 0">
+                                        <template x-for="skillReq in project.skillRequirements" :key="skillReq.skillId">
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                                                <span class="project-skill-badge" x-text="getSkillName(skillReq.skillId)"></span>
+                                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;" x-text="skillReq.manDays + ' j/h'"></span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template x-if="!project.skillRequirements || project.skillRequirements.length === 0">
+                                        <template x-for="skill in project.requiredSkills">
+                                            <span class="project-skill-badge" x-text="skill"></span>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Add Employee Section -->
+                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <h5 style="margin-bottom: 1rem; color: #1e40af;">Employés avec compétences correspondantes</h5>
+                        <template x-if="getEmployeesMatchingProjectSkills().length > 0">
+                            <div>
+                                <!-- Employee Cards Display -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                                    <template x-for="employee in getEmployeesMatchingProjectSkills()" :key="employee.id">
+                                        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; position: relative;">
+                                            <!-- Employee Info -->
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                                                <div>
+                                                    <h6 style="margin: 0; color: #1f2937; font-weight: 600;" x-text="employee.name"></h6>
+                                                    <p style="margin: 0.25rem 0; color: #6b7280; font-size: 0.875rem;" x-text="employee.hourlyRate + '€/h'"></p>
+                                                </div>
+                                                <!-- Match Count Badge -->
+                                                <span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 500;" 
+                                                      x-text="employee.matchCount + ' compétence' + (employee.matchCount > 1 ? 's' : '') + ' correspondante' + (employee.matchCount > 1 ? 's' : '')"></span>
+                                            </div>
+                                            
+                                            <!-- Matching Skills -->
+                                            <div style="margin-bottom: 1rem;">
+                                                <p style="margin: 0 0 0.5rem 0; color: #374151; font-size: 0.875rem; font-weight: 500;">Compétences correspondantes:</p>
+                                                <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                                                    <template x-for="skill in employee.matchingSkills" :key="skill">
+                                                        <span style="background: #10b981; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;" x-text="skill"></span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- All Skills -->
+                                            <div style="margin-bottom: 1rem;">
+                                                <p style="margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Toutes les compétences:</p>
+                                                <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                                                    <template x-for="empSkill in employee.skills" :key="empSkill.skillId">
+                                                        <span style="background: #f3f4f6; color: #374151; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;" 
+                                                              x-text="getSkillName(empSkill.skillId) + ' (' + empSkill.level + ')'"></span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Add Button -->
+                                            <template x-if="!getProjectEmployees().find(emp => emp.id === employee.id)">
+                                                <button class="btn btn-primary" 
+                                                        style="width: 100%; font-size: 0.875rem;" 
+                                                        @click="selectedEmployeeToAdd = employee.id; addEmployeeToProject()">
+                                                    Ajouter au projet
+                                                </button>
+                                            </template>
+                                            <template x-if="getProjectEmployees().find(emp => emp.id === employee.id)">
+                                                <div style="width: 100%; padding: 0.5rem; background: #f3f4f6; color: #6b7280; text-align: center; border-radius: 6px; font-size: 0.875rem;">
+                                                    ✓ Déjà dans le projet
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <!-- Quick Add Dropdown (legacy support) -->
+                                <div style="padding: 1rem; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                                    <p style="margin: 0 0 0.5rem 0; color: #64748b; font-size: 0.875rem;">Ajout rapide:</p>
+                                    <div style="display: flex; gap: 1rem; align-items: center;">
+                                        <select x-model="selectedEmployeeToAdd" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem;">
+                                            <option value="">Sélectionner un employé...</option>
+                                            <template x-for="employee in getEmployeesMatchingProjectSkills().filter(emp => !getProjectEmployees().find(projEmp => projEmp.id === emp.id))" :key="employee.id">
+                                                <option :value="employee.id" x-text="employee.name + ' (' + employee.matchingSkills.join(', ') + ')'"></option>
+                                            </template>
+                                        </select>
+                                        <button class="btn btn-primary" @click="addEmployeeToProject()" :disabled="!selectedEmployeeToAdd" style="font-size: 0.875rem;">Ajouter</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template x-if="getEmployeesMatchingProjectSkills().length === 0">
+                            <div style="text-align: center; padding: 2rem; background: white; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                                <p style="color: #64748b; font-style: italic; margin: 0;">Aucun employé ne possède les compétences requises pour ce projet.</p>
+                                <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Vous pouvez ajouter de nouveaux employés ou modifier les compétences requises du projet.</p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Planning Table for Project -->
+                    <div style="overflow-x: auto;">
+                        <table class="planning-table">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 150px;">Employé</th>
+                                    <template x-for="week in planningWeeks" :key="week.id">
+                                        <th colspan="7" class="week-header" x-text="'Semaine ' + week.number"></th>
+                                    </template>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <template x-for="week in planningWeeks" :key="week.id">
+                                        <template x-for="day in week.days" :key="'header-' + week.id + '-' + day.index">
+                                            <th class="day-header" x-text="day.shortName"></th>
+                                        </template>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="employee in getProjectEmployees()" :key="employee.id">
+                                    <tr>
+                                        <td class="employee-name" x-text="employee.name"></td>
+                                        <template x-for="week in planningWeeks" :key="week.id">
+                                            <template x-for="(day, dayIndex) in week.days" :key="'cell-' + week.id + '-' + day.index">
+                                                <td class="planning-cell"
+                                                    :class="getCellClass(employee.id, week.id, dayIndex)"
+                                                    @click="toggleAssignment(employee.id, week.id, dayIndex)"
+                                                    :title="getCellTooltip(employee.id, week.id, dayIndex)"
+                                                    x-text="getCellDisplay(employee.id, week.id, dayIndex)">
+                                                </td>
+                                            </template>
+                                        </template>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Planning View -->
+            <div x-show="currentView === 'planning'" x-transition>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>📅 Planning des Ressources</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" @click="generateRandomAssignments()">Démo : générer Planning</button>
+                            <button class="btn" @click="exportPlanning()">📊 Exporter</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Légende -->
+                    <div class="planning-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f9fafb; border: 1px solid #e5e7eb;"></div>
+                            <span>Disponible</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #10b981;"></div>
+                            <span>Affecté (100%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f59e0b;"></div>
+                            <span>Affecté (50%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ef4444;"></div>
+                            <span>Surcharge</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Planning Table -->
+                    <div class="planning-container">
+                        <table class="planning-table">
+                            <thead>
+                                <tr>
+                                    <th class="employee-name">Ressource</th>
+                                    <template x-for="week in planningWeeks" :key="week.id">
+                                        <th class="week-header" :colspan="7" x-text="'Semaine ' + week.number + ' (' + week.dates[0] + ')'"></th>
+                                    </template>
+                                </tr>
+                                <tr>
+                                    <th class="employee-name">Compétences</th>
+                                    <template x-for="week in planningWeeks" :key="'days-' + week.id">
+                                        <template x-for="day in week.days" :key="'day-' + week.id + '-' + day.index">
+                                            <th :class="(day.shortName === 'Sam' || day.shortName === 'Dim') && 'weekend'" x-text="day.shortName"></th>
+                                        </template>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="employee in employees" :key="'planning-' + employee.id">
+                                    <tr>
+                                        <td class="employee-name">
+                                            <div x-text="employee.name"></div>
+                                            <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
+                                                <template x-for="skill in employee.skills.slice(0,2)" :key="skill.skillId">
+                                                    <span x-text="getSkillName(skill.skillId) + ' (' + skill.level.charAt(0).toUpperCase() + ')'" style="margin-right: 4px;"></span>
+                                                </template>
+                                            </div>
+                                            <div style="font-size: 9px; color: #059669; margin-top: 4px; font-weight: 600;" x-show="getEmployeeAssignedProjects(employee.id).length > 0">
+                                                <span>Projets: </span>
+                                                <template x-for="(project, index) in getEmployeeAssignedProjects(employee.id)" :key="project">
+                                                    <span>
+                                                        <span x-text="project"></span><span x-show="index < getEmployeeAssignedProjects(employee.id).length - 1">, </span>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <template x-for="week in planningWeeks" :key="'week-' + employee.id + '-' + week.id">
+                                            <template x-for="(day, dayIndex) in week.days" :key="'day-' + employee.id + '-' + week.id + '-' + dayIndex">
+                                                <td class="planning-cell" 
+                                                    :class="getPlanningCellClass(employee.id, week.id, dayIndex)"
+                                                    :title="getPlanningCellTooltip(employee.id, week.id, dayIndex)">
+                                                    <span x-text="getPlanningCellText(employee.id, week.id, dayIndex)"></span>
+                                                </td>
+                                            </template>
+                                        </template>
+                                    </tr>
+                                </template>
+                                
+                                <!-- Ligne de résumé -->
+                                <tr style="border-top: 2px solid #3b82f6;">
+                                    <td class="employee-name" style="background: #dbeafe; color: #1d4ed8; font-weight: bold;">
+                                        Charge Totale
+                                    </td>
+                                    <template x-for="week in planningWeeks" :key="'summary-' + week.id">
+                                        <template x-for="(day, dayIndex) in week.days" :key="'summary-day-' + week.id + '-' + dayIndex">
+                                            <td style="background: #dbeafe; font-weight: bold; color: #1d4ed8;">
+                                                <span x-text="getDayWorkload(week.id, dayIndex) + '%'"></span>
+                                            </td>
+                                        </template>
+                                    </template>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Stats Planning -->
+                    <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h4 style="color: #10b981;">Utilisation Moyenne</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold;" x-text="getAverageUtilization() + '%'"></div>
+                        </div>
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h4 style="color: #f59e0b;">Jours Surchargés</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold;" x-text="getOverloadedDays()"></div>
+                        </div>
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h4 style="color: #3b82f6;">Revenus Planifiés</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold;" x-text="getPlannedRevenue() + '€'"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div x-show="currentView === 'optimizer'" x-transition>
+                <div class="card">
+                    <h3>🤖 Optimiseur IA - Suggestions d'Affectation</h3>
+                    <template x-if="suggestions.length === 0">
+                        <p>Sélectionnez un projet pour voir les suggestions d'affectation optimisées.</p>
+                    </template>
+                    
+                    <div class="grid grid-2">
+                        <template x-for="suggestion in suggestions" :key="suggestion.id">
+                            <div class="card suggestion-card" style="margin: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h4 x-text="suggestion.employee"></h4>
+                                    <span class="badge badge-success" x-text="suggestion.score + '% match'"></span>
+                                </div>
+                                <p><strong>Projet:</strong> <span x-text="suggestion.project"></span></p>
+                                <p><strong>Raisons:</strong></p>
+                                <ul>
+                                    <template x-for="reason in suggestion.reasons">
+                                        <li x-text="reason"></li>
+                                    </template>
+                                </ul>
+                                <button class="btn btn-success" style="margin-top: 1rem;">✅ Assigner</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Modal -->
+            <div class="modal" :class="showEmployeeModal && 'active'" @click.self="showEmployeeModal = false">
+                <div class="modal-content">
+                    <h3>Ajouter un Employé</h3>
+                    <form @submit.prevent="addEmployee()">
+                        <div class="form-group">
+                            <label>Nom</label>
+                            <input type="text" class="form-control" x-model="newEmployee.name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Taux horaire (€)</label>
+                            <input type="number" class="form-control" x-model="newEmployee.hourlyRate" min="20" max="200" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Compétences et niveaux</label>
+                            <div class="skill-builder">
+                                <template x-for="(skill, index) in newEmployee.skills" :key="'skill-' + index">
+                                    <div class="skill-item">
+                                        <select 
+                                            class="skill-input" 
+                                            x-model="skill.skillId" 
+                                            required
+                                        >
+                                            <option value="">Sélectionner une compétence...</option>
+                                            <template x-for="availableSkill in skills" :key="availableSkill.id">
+                                                <option :value="availableSkill.id" x-text="availableSkill.name"></option>
+                                            </template>
+                                        </select>
+                                        <select class="skill-level-select" x-model="skill.level">
+                                            <option value="junior">Junior</option>
+                                            <option value="intermediate">Intermédiaire</option>
+                                            <option value="senior">Senior</option>
+                                        </select>
+                                        <button 
+                                            type="button" 
+                                            class="skill-remove-btn" 
+                                            @click="removeEmployeeSkill(index)"
+                                            x-show="newEmployee.skills.length > 1"
+                                        >×</button>
+                                    </div>
+                                </template>
+                                <button type="button" class="add-skill-btn" @click="addEmployeeSkill()">+ Ajouter une compétence</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button type="submit" class="btn btn-primary">Ajouter</button>
+                            <button type="button" class="btn" @click="showEmployeeModal = false">Annuler</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Project Modal -->
+            <div class="modal" :class="showProjectModal && 'active'" @click.self="showProjectModal = false">
+                <div class="modal-content">
+                    <h3>Ajouter un Projet</h3>
+                    <form @submit.prevent="addProject()">
+                        <div class="form-group">
+                            <label>Nom du projet</label>
+                            <input type="text" class="form-control" x-model="newProject.name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Durée (jours)</label>
+                            <input type="number" class="form-control" x-model="newProject.duration">
+                        </div>
+                        <div class="form-group">
+                            <label>Budget (€)</label>
+                            <input type="number" class="form-control" x-model="newProject.budget">
+                        </div>
+                        <div class="form-group">
+                            <label>Compétences requises</label>
+                            <div style="border: 1px solid #d1d5db; border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+                                <template x-for="(skillReq, index) in newProject.requiredSkills" :key="index">
+                                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem;">
+                                        <select class="form-control" x-model="skillReq.skillId" style="flex: 1;" required>
+                                            <option value="">Sélectionner une compétence</option>
+                                            <template x-for="skill in skills" :key="skill.id">
+                                                <option :value="skill.id" x-text="skill.name"></option>
+                                            </template>
+                                        </select>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               x-model="skillReq.manDays" 
+                                               placeholder="Homme-jours"
+                                               min="0.5" 
+                                               step="0.5"
+                                               style="width: 120px;"
+                                               required>
+                                        <button type="button" 
+                                                class="btn" 
+                                                @click="removeSkillFromProject(index)"
+                                                style="background: #ef4444; color: white; padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </template>
+                                <button type="button" 
+                                        class="btn" 
+                                        @click="addSkillToProject()"
+                                        style="background: #10b981; color: white; margin-top: 0.5rem;">
+                                    + Ajouter une compétence
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button type="submit" class="btn btn-primary">Ajouter</button>
+                            <button type="button" class="btn" @click="showProjectModal = false">Annuler</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Skill Modal -->
+            <div class="modal" :class="showSkillModal && 'active'" @click.self="showSkillModal = false">
+                <div class="modal-content">
+                    <h3 x-text="editingSkill ? 'Modifier la Compétence' : 'Ajouter une Compétence'"></h3>
+                    <form @submit.prevent="saveSkill()">
+                        <div class="form-group">
+                            <label>Nom de la compétence</label>
+                            <input type="text" class="form-control" x-model="newSkill.name" required placeholder="Ex: JavaScript, Python, Design...">
+                        </div>
+                        <div class="form-group">
+                            <label>Description (optionnelle)</label>
+                            <textarea class="form-control" x-model="newSkill.description" rows="3" placeholder="Description de la compétence, technologies associées..."></textarea>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button type="submit" class="btn btn-primary" x-text="editingSkill ? 'Modifier' : 'Ajouter'"></button>
+                            <button type="button" class="btn" @click="cancelSkillModal()">Annuler</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function staffingApp() {
+            return {
+                currentView: 'dashboard',
+                employees: [],
+                projects: [],
+                skills: [],
+                suggestions: [],
+                assignments: {}, // Structure: {employeeId: {weekId: {dayIndex: {project: 'nom', load: 0.5}}}}
+                planningWeeks: [],
+                optimizationCount: 0,
+                showEmployeeModal: false,
+                showProjectModal: false,
+                showSkillModal: false,
+                editingSkill: null,
+                currentProjectId: null,
+                projectDetailView: false,
+                selectedEmployeeToAdd: '',
+                projectEmployees: {}, // Structure: {projectId: [employeeIds]}
+                newEmployee: {
+                    name: '',
+                    hourlyRate: 50,
+                    skills: [{ skillId: '', level: 'intermediate' }]
+                },
+                newProject: {
+                    name: '',
+                    duration: 30,
+                    budget: 10000,
+                    requiredSkills: [{ skillId: '', manDays: 1 }]
+                },
+                newSkill: {
+                    name: '',
+                    description: ''
+                },
+
+                init() {
+                    // Données de démonstration - Compétences de base
+                    this.skills = [
+                        { id: 1, name: 'JavaScript', description: 'Langage de programmation web côté client et serveur' },
+                        { id: 2, name: 'React', description: 'Librairie JavaScript pour créer des interfaces utilisateur' },
+                        { id: 3, name: 'Node.js', description: 'Environnement d\'exécution JavaScript côté serveur' },
+                        { id: 4, name: 'Python', description: 'Langage de programmation polyvalent et puissant' },
+                        { id: 5, name: 'Django', description: 'Framework web Python pour développement rapide' },
+                        { id: 6, name: 'PostgreSQL', description: 'Système de gestion de base de données relationnelle' },
+                        { id: 7, name: 'Design', description: 'Conception d\'interfaces utilisateur et expérience utilisateur' },
+                        { id: 8, name: 'Figma', description: 'Outil de design collaboratif pour interfaces utilisateur' },
+                        { id: 9, name: 'CSS', description: 'Langage de style pour la présentation des pages web' },
+                        { id: 10, name: 'Java', description: 'Langage de programmation orienté objet pour applications d\'entreprise' },
+                        { id: 11, name: 'Spring', description: 'Framework Java pour le développement d\'applications d\'entreprise' },
+                        { id: 12, name: 'MySQL', description: 'Système de gestion de base de données relationnelle' }
+                    ];
+
+                    this.employees = [
+                        { 
+                            id: 1, 
+                            name: 'Alice Martin',
+                            hourlyRate: 65,
+                            skills: [
+                                { skillId: 1, level: 'senior' },
+                                { skillId: 2, level: 'senior' },
+                                { skillId: 3, level: 'intermediate' }
+                            ]
+                        },
+                        { 
+                            id: 2, 
+                            name: 'Bob Dubois',
+                            hourlyRate: 70,
+                            skills: [
+                                { skillId: 4, level: 'senior' },
+                                { skillId: 5, level: 'intermediate' },
+                                { skillId: 6, level: 'intermediate' }
+                            ]
+                        },
+                        { 
+                            id: 3, 
+                            name: 'Claire Moreau',
+                            hourlyRate: 60,
+                            skills: [
+                                { skillId: 7, level: 'senior' },
+                                { skillId: 8, level: 'senior' },
+                                { skillId: 9, level: 'intermediate' }
+                            ]
+                        },
+                        { 
+                            id: 4, 
+                            name: 'David Leroy',
+                            hourlyRate: 75,
+                            skills: [
+                                { skillId: 10, level: 'senior' },
+                                { skillId: 11, level: 'intermediate' },
+                                { skillId: 12, level: 'junior' }
+                            ]
+                        }
+                    ];
+
+                    this.projects = [
+                        { 
+                            id: 1, 
+                            name: 'Site E-commerce', 
+                            duration: 45, 
+                            budget: 25000, 
+                            requiredSkills: ['JavaScript', 'React', 'Design'],
+                            skillRequirements: [
+                                { skillId: 1, manDays: 15 }, // JavaScript
+                                { skillId: 2, manDays: 20 }, // React
+                                { skillId: 7, manDays: 10 }  // Design
+                            ]
+                        },
+                        { 
+                            id: 2, 
+                            name: 'API Backend', 
+                            duration: 30, 
+                            budget: 18000, 
+                            requiredSkills: ['Python', 'Django', 'PostgreSQL'],
+                            skillRequirements: [
+                                { skillId: 4, manDays: 12 }, // Python
+                                { skillId: 5, manDays: 10 }, // Django
+                                { skillId: 6, manDays: 8 }   // PostgreSQL
+                            ]
+                        }
+                    ];
+
+                    // Génération des semaines de planning (8 semaines à partir d'aujourd'hui)
+                    this.generatePlanningWeeks();
+                    
+                    // Initialisation des affectations
+                    this.initializeAssignments();
+                },
+
+                addEmployee() {
+                    const validSkills = this.newEmployee.skills.filter(skill => skill.skillId !== '');
+                    if (validSkills.length === 0) {
+                        alert('Veuillez ajouter au moins une compétence');
+                        return;
+                    }
+                    
+                    this.employees.push({
+                        id: Date.now(),
+                        name: this.newEmployee.name,
+                        hourlyRate: this.newEmployee.hourlyRate,
+                        skills: validSkills
+                    });
+                    this.resetEmployeeForm();
+                    this.showEmployeeModal = false;
+                },
+
+                addProject() {
+                    // Validate that at least one skill is selected
+                    const validSkills = this.newProject.requiredSkills.filter(skill => skill.skillId !== '' && skill.manDays > 0);
+                    if (validSkills.length === 0) {
+                        alert('Veuillez ajouter au moins une compétence avec des homme-jours');
+                        return;
+                    }
+
+                    // Convert skill IDs to skill names for backward compatibility
+                    const skillNames = validSkills.map(skillReq => {
+                        const skill = this.skills.find(s => s.id == skillReq.skillId);
+                        return skill ? skill.name : '';
+                    }).filter(name => name !== '');
+
+                    this.projects.push({
+                        id: Date.now(),
+                        name: this.newProject.name,
+                        duration: this.newProject.duration,
+                        budget: this.newProject.budget,
+                        requiredSkills: skillNames, // Keep backward compatibility
+                        skillRequirements: validSkills // New detailed structure
+                    });
+                    this.resetProjectForm();
+                    this.showProjectModal = false;
+                },
+
+                removeEmployee(id) {
+                    this.employees = this.employees.filter(emp => emp.id !== id);
+                },
+
+                removeProject(id) {
+                    this.projects = this.projects.filter(proj => proj.id !== id);
+                },
+
+                // ===== FONCTIONS SKILLS =====
+                saveSkill() {
+                    if (this.editingSkill) {
+                        // Modifier une compétence existante
+                        const skill = this.skills.find(s => s.id === this.editingSkill.id);
+                        if (skill) {
+                            skill.name = this.newSkill.name;
+                            skill.description = this.newSkill.description;
+                        }
+                    } else {
+                        // Ajouter une nouvelle compétence
+                        this.skills.push({
+                            id: Date.now(),
+                            name: this.newSkill.name,
+                            description: this.newSkill.description
+                        });
+                    }
+                    this.cancelSkillModal();
+                },
+
+                editSkill(skill) {
+                    this.editingSkill = skill;
+                    this.newSkill = {
+                        name: skill.name,
+                        description: skill.description
+                    };
+                    this.showSkillModal = true;
+                },
+
+                removeSkill(skillId) {
+                    // Vérifier si la compétence est utilisée par des employés
+                    const isUsed = this.employees.some(emp => 
+                        emp.skills.some(skill => skill.skillId === skillId)
+                    );
+                    
+                    if (isUsed) {
+                        alert('Cette compétence ne peut pas être supprimée car elle est utilisée par des employés.');
+                        return;
+                    }
+                    
+                    if (confirm('Êtes-vous sûr de vouloir supprimer cette compétence ?')) {
+                        this.skills = this.skills.filter(skill => skill.id !== skillId);
+                    }
+                },
+
+                cancelSkillModal() {
+                    this.showSkillModal = false;
+                    this.editingSkill = null;
+                    this.newSkill = { name: '', description: '' };
+                },
+
+                getEmployeesWithSkill(skillId) {
+                    return this.employees.filter(emp => 
+                        emp.skills.some(skill => skill.skillId === skillId)
+                    );
+                },
+
+                getSkillName(skillId) {
+                    const skill = this.skills.find(s => s.id == skillId);
+                    return skill ? skill.name : 'Compétence inconnue';
+                },
+
+                optimizeProject(projectId) {
+                    const project = this.projects.find(p => p.id === projectId);
+                    if (!project) return;
+
+                    // Algorithme simple de matching
+                    const matches = this.employees.map(emp => {
+                        const skillMatch = this.calculateSkillMatch(emp.skills, project.requiredSkills);
+                        const costEfficiency = this.calculateCostEfficiency(emp.hourlyRate, project.budget, project.duration);
+                        const availability = Math.random() * 100; // Simulation
+
+                        const score = Math.round((skillMatch * 0.5 + costEfficiency * 0.3 + availability * 0.2));
+
+                        return {
+                            id: Date.now() + emp.id,
+                            employee: emp.name,
+                            project: project.name,
+                            score: score,
+                            reasons: this.generateReasons(skillMatch, costEfficiency, availability)
+                        };
+                    }).sort((a, b) => b.score - a.score).slice(0, 3);
+
+                    this.suggestions = matches;
+                    this.optimizationCount += matches.length;
+                    this.currentView = 'optimizer';
+                },
+
+                calculateSkillMatch(empSkills, reqSkills) {
+                    let totalScore = 0;
+                    let maxScore = reqSkills.length * 100; // Maximum possible score
+                    
+                    reqSkills.forEach(reqSkill => {
+                        const matchingSkill = empSkills.find(empSkill => {
+                            const skillName = this.getSkillName(empSkill.skillId);
+                            return skillName.toLowerCase().includes(reqSkill.toLowerCase());
+                        });
+                        
+                        if (matchingSkill) {
+                            // Base score for having the skill
+                            let skillScore = 50;
+                            
+                            // Bonus based on skill level
+                            switch (matchingSkill.level) {
+                                case 'senior':
+                                    skillScore = 100;
+                                    break;
+                                case 'intermediate':
+                                    skillScore = 75;
+                                    break;
+                                case 'junior':
+                                    skillScore = 50;
+                                    break;
+                            }
+                            
+                            totalScore += skillScore;
+                        }
+                    });
+                    
+                    return maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+                },
+
+                calculateCostEfficiency(hourlyRate, budget, duration) {
+                    const estimatedCost = hourlyRate * duration * 8; // 8h/jour
+                    const efficiency = 1 - (estimatedCost / budget);
+                    return Math.max(0, efficiency * 100);
+                },
+
+                generateReasons(skillMatch, costEfficiency, availability) {
+                    const reasons = [];
+                    if (skillMatch > 80) reasons.push('Excellent match de compétences');
+                    else if (skillMatch > 50) reasons.push('Bonnes compétences techniques');
+                    
+                    if (costEfficiency > 70) reasons.push('Coût optimisé pour le budget');
+                    if (availability > 70) reasons.push('Forte disponibilité');
+                    
+                    return reasons.length ? reasons : ['Profil intéressant à considérer'];
+                },
+
+                getEmployeeLoad(employeeId) {
+                    // Simulation de charge de travail
+                    return Math.floor(Math.random() * 100);
+                },
+
+                resetEmployeeForm() {
+                    this.newEmployee = { 
+                        name: '', 
+                        hourlyRate: 50,
+                        skills: [{ skillId: '', level: 'intermediate' }]
+                    };
+                },
+
+                resetProjectForm() {
+                    this.newProject = { 
+                        name: '', 
+                        duration: 30, 
+                        budget: 10000, 
+                        requiredSkills: [{ skillId: '', manDays: 1 }] 
+                    };
+                },
+
+                addSkillToProject() {
+                    this.newProject.requiredSkills.push({ skillId: '', manDays: 1 });
+                },
+
+                removeSkillFromProject(index) {
+                    if (this.newProject.requiredSkills.length > 1) {
+                        this.newProject.requiredSkills.splice(index, 1);
+                    }
+                },
+
+                // ===== FONCTIONS PLANNING =====
+                generatePlanningWeeks() {
+                    const weeks = [];
+                    const today = new Date();
+                    const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+                    
+                    for (let w = 0; w < 8; w++) {
+                        const weekStart = new Date(today);
+                        weekStart.setDate(today.getDate() + (w * 7));
+                        
+                        const days = [];
+                        for (let d = 0; d < 7; d++) {
+                            const date = new Date(weekStart);
+                            date.setDate(weekStart.getDate() + d);
+                            days.push({
+                                shortName: dayNames[d],
+                                date: date.getDate() + '/' + (date.getMonth() + 1),
+                                index: d
+                            });
+                        }
+                        
+                        weeks.push({
+                            id: w + 1,
+                            number: w + 1,
+                            days: days,
+                            dates: days.map(day => day.date) // Keep for backward compatibility
+                        });
+                    }
+                    
+                    this.planningWeeks = weeks;
+                },
+
+                initializeAssignments() {
+                    this.assignments = {};
+                    this.employees.forEach(emp => {
+                        this.assignments[emp.id] = {};
+                        this.planningWeeks.forEach(week => {
+                            this.assignments[emp.id][week.id] = {};
+                        });
+                    });
+                },
+
+                getPlanningCellClass(employeeId, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    if (!assignment) return 'planning-cell';
+                    
+                    if (assignment.load > 1) return 'planning-cell overbooked';
+                    if (assignment.load >= 1) return 'planning-cell assigned';
+                    if (assignment.load > 0) return 'planning-cell partial';
+                    
+                    return 'planning-cell';
+                },
+
+                getPlanningCellText(employeeId, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    if (!assignment) return '';
+                    
+                    const percentage = Math.round(assignment.load * 100);
+                    return percentage > 0 ? percentage + '%' : '';
+                },
+
+                getPlanningCellTooltip(employeeId, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const employee = this.employees.find(e => e.id === employeeId);
+                    
+                    if (!assignment) return `${employee.name} - Disponible`;
+                    
+                    return `${employee.name} - ${assignment.project} (${Math.round(assignment.load * 100)}%)`;
+                },
+
+                toggleAssignment(employeeId, weekId, dayIndex) {
+                    if (!this.assignments[employeeId]) {
+                        this.assignments[employeeId] = {};
+                    }
+                    if (!this.assignments[employeeId][weekId]) {
+                        this.assignments[employeeId][weekId] = {};
+                    }
+                    
+                    const current = this.assignments[employeeId][weekId][dayIndex];
+                    
+                    if (!current) {
+                        // Assigner à 50%
+                        this.assignments[employeeId][weekId][dayIndex] = {
+                            project: 'Projet Demo',
+                            load: 0.5
+                        };
+                    } else if (current.load === 0.5) {
+                        // Passer à 100%
+                        current.load = 1;
+                    } else if (current.load === 1) {
+                        // Passer à surcharge 150%
+                        current.load = 1.5;
+                    } else {
+                        // Remettre à disponible
+                        delete this.assignments[employeeId][weekId][dayIndex];
+                    }
+                },
+
+                // Functions for Project Detail View
+                getCellClass(employeeId, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    if (!assignment) return '';
+                    
+                    if (assignment.load > 1) return 'overbooked';
+                    if (assignment.load >= 1) return 'assigned';
+                    if (assignment.load > 0) return 'partial';
+                    
+                    return '';
+                },
+
+                getCellTooltip(employeeId, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const employee = this.employees.find(e => e.id === employeeId);
+                    
+                    if (!assignment) return `${employee.name} - Disponible`;
+                    
+                    return `${employee.name} - ${assignment.project} (${Math.round(assignment.load * 100)}%)`;
+                },
+
+                getCellDisplay(employeeId, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    if (!assignment) return '';
+                    
+                    const percentage = Math.round(assignment.load * 100);
+                    return percentage > 0 ? percentage + '%' : '';
+                },
+
+                getAssignedEmployeesCount(projectName) {
+                    const assignedEmployees = new Set();
+                    
+                    // Parcourir toutes les affectations pour trouver les employés assignés à ce projet
+                    Object.keys(this.assignments).forEach(employeeId => {
+                        Object.keys(this.assignments[employeeId]).forEach(weekId => {
+                            Object.keys(this.assignments[employeeId][weekId]).forEach(dayIndex => {
+                                const assignment = this.assignments[employeeId][weekId][dayIndex];
+                                if (assignment && assignment.project === projectName) {
+                                    assignedEmployees.add(parseInt(employeeId));
+                                }
+                            });
+                        });
+                    });
+                    
+                    return assignedEmployees.size;
+                },
+
+                openProjectDetail(projectId) {
+                    this.currentProjectId = projectId;
+                    this.projectDetailView = true;
+                    this.currentView = null; // Cache les autres vues
+                },
+
+                closeProjectDetail() {
+                    this.projectDetailView = false;
+                    this.currentProjectId = null;
+                    this.currentView = 'projects'; // Retourne à la vue projets
+                },
+
+                getProjectEmployees() {
+                    if (!this.currentProjectId) return [];
+                    
+                    // Récupère les employés manuellement ajoutés au projet
+                    const manuallyAdded = this.projectEmployees[this.currentProjectId] || [];
+                    
+                    // Retourne seulement les employés manuellement ajoutés au projet
+                    // (Plus d'assignation automatique basée sur les compétences)
+                    return this.employees.filter(employee => {
+                        return manuallyAdded.includes(employee.id);
+                    });
+                },
+
+                addEmployeeToProject() {
+                    if (!this.selectedEmployeeToAdd || !this.currentProjectId) return;
+                    
+                    // Initialise le tableau s'il n'existe pas
+                    if (!this.projectEmployees[this.currentProjectId]) {
+                        this.projectEmployees[this.currentProjectId] = [];
+                    }
+                    
+                    // Ajoute l'employé s'il n'est pas déjà présent
+                    const employeeId = parseInt(this.selectedEmployeeToAdd);
+                    if (!this.projectEmployees[this.currentProjectId].includes(employeeId)) {
+                        this.projectEmployees[this.currentProjectId].push(employeeId);
+                    }
+                    
+                    // Remet à zéro la sélection
+                    this.selectedEmployeeToAdd = '';
+                },
+
+                getAvailableEmployeesForProject() {
+                    if (!this.currentProjectId) return [];
+                    
+                    const projectEmployees = this.getProjectEmployees();
+                    const currentlyAssigned = new Set();
+                    
+                    // Trouve les employés déjà assignés dans le planning pour ce projet
+                    const project = this.projects.find(p => p.id === this.currentProjectId);
+                    if (project) {
+                        Object.keys(this.assignments).forEach(employeeId => {
+                            Object.keys(this.assignments[employeeId]).forEach(weekId => {
+                                Object.keys(this.assignments[employeeId][weekId]).forEach(dayIndex => {
+                                    const assignment = this.assignments[employeeId][weekId][dayIndex];
+                                    if (assignment && assignment.project === project.name) {
+                                        currentlyAssigned.add(parseInt(employeeId));
+                                    }
+                                });
+                            });
+                        });
+                    }
+                    
+                    // Retourne les employés éligibles qui ne sont pas encore assignés
+                    return projectEmployees.filter(emp => !currentlyAssigned.has(emp.id));
+                },
+
+                getEmployeeSkillsText(employeeId) {
+                    const employee = this.employees.find(e => e.id === employeeId);
+                    if (!employee) return '';
+                    
+                    const skillNames = employee.skills.map(empSkill => {
+                        const skill = this.skills.find(s => s.id === empSkill.skillId);
+                        return skill ? skill.name : '';
+                    }).filter(name => name !== '');
+                    
+                    return skillNames.join(', ');
+                },
+
+                getEmployeesMatchingProjectSkills() {
+                    if (!this.currentProjectId) return [];
+                    
+                    const project = this.projects.find(p => p.id === this.currentProjectId);
+                    if (!project) return [];
+                    
+                    // Get required skill IDs from project
+                    const requiredSkillIds = new Set();
+                    
+                    // Support both new skillRequirements format and legacy requiredSkills
+                    if (project.skillRequirements && project.skillRequirements.length > 0) {
+                        project.skillRequirements.forEach(skillReq => {
+                            requiredSkillIds.add(skillReq.skillId);
+                        });
+                    } else if (project.requiredSkills && project.requiredSkills.length > 0) {
+                        // Convert skill names to IDs for legacy format
+                        project.requiredSkills.forEach(skillName => {
+                            const skill = this.skills.find(s => s.name === skillName);
+                            if (skill) {
+                                requiredSkillIds.add(skill.id);
+                            }
+                        });
+                    }
+                    
+                    // Find employees who have at least one matching skill
+                    return this.employees.filter(employee => {
+                        return employee.skills.some(empSkill => 
+                            requiredSkillIds.has(empSkill.skillId)
+                        );
+                    }).map(employee => {
+                        // Add skill match info for display
+                        const matchingSkills = employee.skills.filter(empSkill => 
+                            requiredSkillIds.has(empSkill.skillId)
+                        ).map(empSkill => {
+                            const skill = this.skills.find(s => s.id === empSkill.skillId);
+                            return skill ? `${skill.name} (${empSkill.level})` : '';
+                        }).filter(name => name !== '');
+                        
+                        return {
+                            ...employee,
+                            matchingSkills: matchingSkills,
+                            matchCount: matchingSkills.length
+                        };
+                    }).sort((a, b) => b.matchCount - a.matchCount); // Sort by number of matching skills
+                },
+
+                generateRandomAssignments() {
+                    // Génère des affectations aléatoires pour la demo
+                    this.initializeAssignments();
+                    
+                    // Ensure we have projects to assign to
+                    if (this.projects.length === 0) {
+                        alert('Aucun projet disponible pour l\'affectation');
+                        return;
+                    }
+                    
+                    this.employees.forEach(emp => {
+                        this.planningWeeks.forEach(week => {
+                            // 70% de chance d'avoir des affectations dans la semaine
+                            if (Math.random() > 0.3) {
+                                // Affectations sur 2-4 jours de la semaine
+                                const daysToAssign = Math.floor(Math.random() * 3) + 2;
+                                const workDays = [0, 1, 2, 3, 4]; // Lun-Ven
+                                const shuffledDays = workDays.sort(() => Math.random() - 0.5);
+                                
+                                for (let i = 0; i < daysToAssign && i < shuffledDays.length; i++) {
+                                    const dayIndex = shuffledDays[i];
+                                    const project = this.projects[Math.floor(Math.random() * this.projects.length)];
+                                    const load = Math.random() > 0.7 ? 1 : 0.5; // 30% chance de 100%, 70% de 50%
+                                    
+                                    this.assignments[emp.id][week.id][dayIndex] = {
+                                        project: project.name,
+                                        load: load
+                                    };
+                                    
+                                    // Add employee to project assignments if not already there
+                                    if (!this.projectEmployees[project.id]) {
+                                        this.projectEmployees[project.id] = [];
+                                    }
+                                    if (!this.projectEmployees[project.id].includes(emp.id)) {
+                                        this.projectEmployees[project.id].push(emp.id);
+                                    }
+                                }
+                            }
+                        });
+                    });
+                },
+
+                getDayWorkload(weekId, dayIndex) {
+                    let totalLoad = 0;
+                    let employeeCount = 0;
+                    
+                    this.employees.forEach(emp => {
+                        const assignment = this.assignments[emp.id]?.[weekId]?.[dayIndex];
+                        if (assignment) {
+                            totalLoad += assignment.load;
+                        }
+                        employeeCount++;
+                    });
+                    
+                    return employeeCount > 0 ? Math.round((totalLoad / employeeCount) * 100) : 0;
+                },
+
+                getAverageUtilization() {
+                    let totalLoad = 0;
+                    let totalSlots = 0;
+                    
+                    this.employees.forEach(emp => {
+                        this.planningWeeks.forEach(week => {
+                            // Seulement les jours de travail (Lun-Ven)
+                            for (let day = 0; day < 5; day++) {
+                                const assignment = this.assignments[emp.id]?.[week.id]?.[day];
+                                totalLoad += assignment ? assignment.load : 0;
+                                totalSlots++;
+                            }
+                        });
+                    });
+                    
+                    return totalSlots > 0 ? Math.round((totalLoad / totalSlots) * 100) : 0;
+                },
+
+                getOverloadedDays() {
+                    let overloadedCount = 0;
+                    
+                    this.employees.forEach(emp => {
+                        this.planningWeeks.forEach(week => {
+                            for (let day = 0; day < 7; day++) {
+                                const assignment = this.assignments[emp.id]?.[week.id]?.[day];
+                                if (assignment && assignment.load > 1) {
+                                    overloadedCount++;
+                                }
+                            }
+                        });
+                    });
+                    
+                    return overloadedCount;
+                },
+
+                getPlannedRevenue() {
+                    let totalRevenue = 0;
+                    
+                    this.employees.forEach(emp => {
+                        this.planningWeeks.forEach(week => {
+                            for (let day = 0; day < 5; day++) { // Jours travaillés
+                                const assignment = this.assignments[emp.id]?.[week.id]?.[day];
+                                if (assignment) {
+                                    totalRevenue += emp.hourlyRate * 8 * assignment.load; // 8h par jour
+                                }
+                            }
+                        });
+                    });
+                    
+                    return Math.round(totalRevenue);
+                },
+
+                exportPlanning() {
+                    alert('Fonction export - Dans la vraie version: export Excel du planning');
+                },
+
+                // ===== FONCTIONS EMPLOYEE SKILLS =====
+                addEmployeeSkill() {
+                    this.newEmployee.skills.push({ skillId: '', level: 'intermediate' });
+                },
+
+                removeEmployeeSkill(index) {
+                    if (this.newEmployee.skills.length > 1) {
+                        this.newEmployee.skills.splice(index, 1);
+                    }
+                },
+
+                getSkillLevelLabel(level) {
+                    const labels = {
+                        'junior': 'J',
+                        'intermediate': 'I', 
+                        'senior': 'S'
+                    };
+                    return labels[level] || 'I';
+                },
+
+                getEmployeeAssignedProjects(employeeId) {
+                    const assignedProjects = new Set();
+                    
+                    // Parcourir toutes les affectations pour trouver les projets assignés à cet employé
+                    Object.keys(this.assignments[employeeId] || {}).forEach(weekId => {
+                        Object.keys(this.assignments[employeeId][weekId] || {}).forEach(dayIndex => {
+                            const assignment = this.assignments[employeeId][weekId][dayIndex];
+                            if (assignment && assignment.project) {
+                                assignedProjects.add(assignment.project);
+                            }
+                        });
+                    });
+                    
+                    return Array.from(assignedProjects);
+                }
+            };
+        }
+    </script>
+</body>
+</html>

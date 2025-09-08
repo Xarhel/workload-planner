@@ -611,15 +611,15 @@
         <div class="container">
             <div class="nav">
                 <button class="nav-btn" :class="currentView === 'dashboard' && 'active'" 
-                        @click="currentView = 'dashboard'">Dashboard</button>
+                        @click="currentView = 'dashboard'; projectDetailView = false">Dashboard</button>
                 <button class="nav-btn" :class="currentView === 'employees' && 'active'" 
-                        @click="currentView = 'employees'">Employés</button>
+                        @click="currentView = 'employees'; projectDetailView = false">Employés</button>
                 <button class="nav-btn" :class="currentView === 'skills' && 'active'" 
-                        @click="currentView = 'skills'">Compétences</button>
+                        @click="currentView = 'skills'; projectDetailView = false">Compétences</button>
                 <button class="nav-btn" :class="currentView === 'projects' && 'active'" 
-                        @click="currentView = 'projects'">Projets</button>
+                        @click="currentView = 'projects'; projectDetailView = false">Projets</button>
                 <button class="nav-btn" :class="currentView === 'planning' && 'active'" 
-                        @click="currentView = 'planning'">Planning</button>
+                        @click="currentView = 'planning'; projectDetailView = false">Planning</button>
             </div>
 
             <!-- Dashboard View -->
@@ -785,10 +785,6 @@
                                         <span class="project-meta-value" x-text="project.duration + ' jours'"></span>
                                     </div>
                                     <div class="project-meta-item">
-                                        <span class="project-meta-label">Budget</span>
-                                        <span class="project-meta-value" x-text="project.budget.toLocaleString() + '€'"></span>
-                                    </div>
-                                    <div class="project-meta-item">
                                         <span class="project-meta-label">Personnes assignées</span>
                                         <span class="project-meta-value" x-text="getAssignedEmployeesCount(project.name) + ' personne' + (getAssignedEmployeesCount(project.name) > 1 ? 's' : '')"></span>
                                     </div>
@@ -834,10 +830,6 @@
                                     <span style="font-weight: 600; color: #64748b;">Durée:</span>
                                     <span x-text="project.duration + ' jours'" style="margin-left: 0.5rem;"></span>
                                 </div>
-                                <div>
-                                    <span style="font-weight: 600; color: #64748b;">Budget:</span>
-                                    <span x-text="project.budget.toLocaleString() + '€'" style="margin-left: 0.5rem;"></span>
-                                </div>
                             </div>
                             <div>
                                 <span style="font-weight: 600; color: #64748b;">Compétences requises:</span>
@@ -873,7 +865,6 @@
                                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
                                                 <div>
                                                     <h6 style="margin: 0; color: #1f2937; font-weight: 600;" x-text="employee.name"></h6>
-                                                    <p style="margin: 0.25rem 0; color: #6b7280; font-size: 0.875rem;" x-text="employee.hourlyRate + '€/h'"></p>
                                                 </div>
                                                 <!-- Match Count Badge -->
                                                 <span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 500;" 
@@ -1090,10 +1081,6 @@
                             <h4 style="color: #f59e0b;">Jours Surchargés</h4>
                             <div style="font-size: 1.5rem; font-weight: bold;" x-text="getOverloadedDays()"></div>
                         </div>
-                        <div class="card" style="margin: 0; text-align: center;">
-                            <h4 style="color: #3b82f6;">Revenus Planifiés</h4>
-                            <div style="font-size: 1.5rem; font-weight: bold;" x-text="getPlannedRevenue() + '€'"></div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1106,10 +1093,6 @@
                         <div class="form-group">
                             <label>Nom</label>
                             <input type="text" class="form-control" x-model="newEmployee.name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Taux horaire (€)</label>
-                            <input type="number" class="form-control" x-model="newEmployee.hourlyRate" min="20" max="200" required>
                         </div>
                         <div class="form-group">
                             <label>Compétences et niveaux</label>
@@ -1162,10 +1145,6 @@
                         <div class="form-group">
                             <label>Durée (jours)</label>
                             <input type="number" class="form-control" x-model="newProject.duration">
-                        </div>
-                        <div class="form-group">
-                            <label>Budget (€)</label>
-                            <input type="number" class="form-control" x-model="newProject.budget">
                         </div>
                         <div class="form-group">
                             <label>Compétences requises</label>
@@ -1252,13 +1231,11 @@
                 projectEmployees: {}, // Structure: {projectId: [employeeIds]}
                 newEmployee: {
                     name: '',
-                    hourlyRate: 50,
                     skills: [{ skillId: '', level: 'intermediate' }]
                 },
                 newProject: {
                     name: '',
                     duration: 30,
-                    budget: 10000,
                     requiredSkills: [{ skillId: '', manDays: 1 }]
                 },
                 newSkill: {
@@ -1287,7 +1264,6 @@
                         { 
                             id: 1, 
                             name: 'Alice Martin',
-                            hourlyRate: 65,
                             skills: [
                                 { skillId: 1, level: 'senior' },
                                 { skillId: 2, level: 'senior' },
@@ -1297,7 +1273,6 @@
                         { 
                             id: 2, 
                             name: 'Bob Dubois',
-                            hourlyRate: 70,
                             skills: [
                                 { skillId: 4, level: 'senior' },
                                 { skillId: 5, level: 'intermediate' },
@@ -1307,7 +1282,6 @@
                         { 
                             id: 3, 
                             name: 'Claire Moreau',
-                            hourlyRate: 60,
                             skills: [
                                 { skillId: 7, level: 'senior' },
                                 { skillId: 8, level: 'senior' },
@@ -1317,7 +1291,6 @@
                         { 
                             id: 4, 
                             name: 'David Leroy',
-                            hourlyRate: 75,
                             skills: [
                                 { skillId: 10, level: 'senior' },
                                 { skillId: 11, level: 'intermediate' },
@@ -1331,7 +1304,6 @@
                             id: 1, 
                             name: 'Site E-commerce', 
                             duration: 45, 
-                            budget: 25000, 
                             requiredSkills: ['JavaScript', 'React', 'Design'],
                             skillRequirements: [
                                 { skillId: 1, manDays: 15 }, // JavaScript
@@ -1343,7 +1315,6 @@
                             id: 2, 
                             name: 'API Backend', 
                             duration: 30, 
-                            budget: 18000, 
                             requiredSkills: ['Python', 'Django', 'PostgreSQL'],
                             skillRequirements: [
                                 { skillId: 4, manDays: 12 }, // Python
@@ -1370,7 +1341,6 @@
                     this.employees.push({
                         id: Date.now(),
                         name: this.newEmployee.name,
-                        hourlyRate: this.newEmployee.hourlyRate,
                         skills: validSkills
                     });
                     this.resetEmployeeForm();
@@ -1395,7 +1365,6 @@
                         id: Date.now(),
                         name: this.newProject.name,
                         duration: this.newProject.duration,
-                        budget: this.newProject.budget,
                         requiredSkills: skillNames, // Keep backward compatibility
                         skillRequirements: validSkills // New detailed structure
                     });
@@ -1516,7 +1485,6 @@
                 resetEmployeeForm() {
                     this.newEmployee = { 
                         name: '', 
-                        hourlyRate: 50,
                         skills: [{ skillId: '', level: 'intermediate' }]
                     };
                 },
@@ -1525,7 +1493,6 @@
                     this.newProject = { 
                         name: '', 
                         duration: 30, 
-                        budget: 10000, 
                         requiredSkills: [{ skillId: '', manDays: 1 }] 
                     };
                 },
@@ -1916,23 +1883,6 @@
                     });
                     
                     return overloadedCount;
-                },
-
-                getPlannedRevenue() {
-                    let totalRevenue = 0;
-                    
-                    this.employees.forEach(emp => {
-                        this.planningWeeks.forEach(week => {
-                            for (let day = 0; day < 5; day++) { // Jours travaillés
-                                const assignment = this.assignments[emp.id]?.[week.id]?.[day];
-                                if (assignment) {
-                                    totalRevenue += emp.hourlyRate * 8 * assignment.load; // 8h par jour
-                                }
-                            }
-                        });
-                    });
-                    
-                    return Math.round(totalRevenue);
                 },
 
                 exportPlanning() {

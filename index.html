@@ -425,6 +425,56 @@
             background: #d1d5db;
         }
         
+        /* Advanced Planning Styles */
+        .employee-header-row {
+            background: #f1f5f9;
+            font-weight: 600;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .employee-header-row td {
+            background: #f1f5f9;
+        }
+
+        .employee-total {
+            background: #e2e8f0 !important;
+            color: #1e293b;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .project-sub-row {
+            background: #fafbfc;
+            border-left: 2px solid #cbd5e1;
+        }
+
+        .project-sub-row td {
+            background: #fafbfc;
+        }
+
+        .project-name {
+            padding-left: 2rem;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .project-sub-row .planning-cell {
+            background: #f8fafc;
+        }
+
+        .project-sub-row .planning-cell:hover {
+            background: #e1e7ef;
+        }
+
+        .advanced-planning-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
         .planning-table {
             width: 100%;
             border-collapse: collapse;
@@ -620,6 +670,8 @@
                         @click="currentView = 'projects'; projectDetailView = false">Projets</button>
                 <button class="nav-btn" :class="currentView === 'planning' && 'active'" 
                         @click="currentView = 'planning'; projectDetailView = false">Planning</button>
+                <button class="nav-btn" :class="currentView === 'advanced-planning' && 'active'" 
+                        @click="currentView = 'advanced-planning'; projectDetailView = false">Planification Avancée</button>
             </div>
 
             <!-- Dashboard View -->
@@ -1080,6 +1132,101 @@
                         <div class="card" style="margin: 0; text-align: center;">
                             <h4 style="color: #f59e0b;">Jours Surchargés</h4>
                             <div style="font-size: 1.5rem; font-weight: bold;" x-text="getOverloadedDays()"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Planning View -->
+            <div x-show="currentView === 'advanced-planning'" x-transition>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>🎯 Planification Avancée par Projet</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" @click="generateRandomAssignments()">Démo : générer Planning</button>
+                            <button class="btn" @click="exportPlanning()">📊 Exporter</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Légende -->
+                    <div class="planning-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f8fafc; border: 1px solid #e5e7eb;"></div>
+                            <span>Disponible</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #10b981;"></div>
+                            <span>Affecté (100%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f59e0b;"></div>
+                            <span>Affecté (50%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ef4444;"></div>
+                            <span>Surcharge</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f1f5f9; border-left: 4px solid #3b82f6;"></div>
+                            <span>Total Employé</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Planning Table -->
+                    <div class="advanced-planning-container">
+                        <table class="planning-table">
+                            <thead>
+                                <tr>
+                                    <th class="employee-name">Employé / Projet</th>
+                                    <template x-for="week in planningWeeks" :key="week.id">
+                                        <th class="week-header" :colspan="7" x-text="'Semaine ' + week.number + ' (' + week.dates[0] + ')'"></th>
+                                    </template>
+                                </tr>
+                                <tr>
+                                    <th class="employee-name">Charge</th>
+                                    <template x-for="week in planningWeeks" :key="week.id">
+                                        <template x-for="(day, dayIndex) in week.days" :key="week.id + '-' + dayIndex">
+                                            <th class="day-header" :class="(day.shortName === 'Sam' || day.shortName === 'Dim') && 'weekend'" x-text="day.shortName"></th>
+                                        </template>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="row in getAdvancedPlanningRows()" :key="row.type + '-' + row.employee.id + '-' + (row.project ? row.project.id : 'header')">
+                                    <tr :class="row.type === 'employee' ? 'employee-header-row' : 'project-sub-row'">
+                                        <td :class="row.type === 'employee' ? 'employee-name employee-total' : 'project-name'">
+                                            <span x-text="row.type === 'employee' ? row.employee.name : row.project.name"></span>
+                                        </td>
+                                        <template x-for="week in planningWeeks" :key="'week-' + week.id">
+                                            <template x-for="(day, dayIndex) in week.days" :key="'day-' + week.id + '-' + dayIndex">
+                                                <td :class="[
+                                                    (day.shortName === 'Sam' || day.shortName === 'Dim') && 'weekend',
+                                                    row.type === 'employee' ? 'employee-total' : 'planning-cell',
+                                                    row.type === 'project' ? getAdvancedCellClass(row.employee.id, row.project.name, week.id, dayIndex) : ''
+                                                ]"
+                                                @click="row.type === 'project' && toggleAdvancedAssignment(row.employee.id, row.project.name, week.id, dayIndex)"
+                                                :title="row.type === 'project' ? getAdvancedCellTooltip(row.employee.id, row.project.name, week.id, dayIndex) : ''">
+                                                    <span x-text="row.type === 'employee' ? 
+                                                        getEmployeeDayTotal(row.employee.id, week.id, dayIndex) + '%' : 
+                                                        getAdvancedCellText(row.employee.id, row.project.name, week.id, dayIndex)"></span>
+                                                </td>
+                                            </template>
+                                        </template>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h4 style="color: #10b981;">Employés avec Projets</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold;" x-text="getAdvancedPlanningRows().filter(row => row.type === 'employee').length"></div>
+                        </div>
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h4 style="color: #3b82f6;">Projets Compatibles</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold;" x-text="getTotalMatchingProjects()"></div>
                         </div>
                     </div>
                 </div>
@@ -1923,6 +2070,158 @@
                     });
                     
                     return Array.from(assignedProjects);
+                },
+
+                // ===== ADVANCED PLANNING FUNCTIONS =====
+                getAdvancedPlanningRows() {
+                    const flatRows = [];
+                    
+                    this.employees.forEach(employee => {
+                        const matchingProjects = this.getEmployeeProjectsBasedOnSkills(employee.id);
+                        
+                        // Always add employee header (for debugging)
+                        flatRows.push({
+                            type: 'employee',
+                            employee: employee,
+                            project: null
+                        });
+                        
+                        // Add project rows for this employee
+                        matchingProjects.forEach(project => {
+                            flatRows.push({
+                                type: 'project',
+                                employee: employee,
+                                project: project
+                            });
+                        });
+                        
+                        // Debug: if no projects, add a debug row
+                        if (matchingProjects.length === 0) {
+                            flatRows.push({
+                                type: 'project',
+                                employee: employee,
+                                project: { name: 'DEBUG: No matching projects found', id: 'debug-' + employee.id }
+                            });
+                        }
+                    });
+                    
+                    console.log('Advanced planning rows:', flatRows);
+                    return flatRows;
+                },
+
+                getEmployeeProjectsBasedOnSkills(employeeId) {
+                    const employee = this.employees.find(e => e.id === employeeId);
+                    if (!employee) return [];
+                    
+                    const employeeSkillIds = new Set(employee.skills.map(skill => skill.skillId));
+                    
+                    return this.projects.filter(project => {
+                        // Check if project has skill requirements
+                        if (project.skillRequirements && project.skillRequirements.length > 0) {
+                            // New format - check skillRequirements
+                            return project.skillRequirements.some(skillReq => 
+                                employeeSkillIds.has(skillReq.skillId)
+                            );
+                        } else if (project.requiredSkills && project.requiredSkills.length > 0) {
+                            // Legacy format - check requiredSkills (skill names)
+                            return project.requiredSkills.some(skillName => {
+                                const skill = this.skills.find(s => s.name === skillName);
+                                return skill && employeeSkillIds.has(skill.id);
+                            });
+                        }
+                        return false;
+                    });
+                },
+
+                getEmployeeDayTotal(employeeId, weekId, dayIndex) {
+                    let total = 0;
+                    const employeeAssignments = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    
+                    // Get all projects for this employee
+                    const employeeProjects = this.getEmployeeProjectsBasedOnSkills(employeeId);
+                    
+                    // Sum up loads for all projects this employee is assigned to on this day
+                    employeeProjects.forEach(project => {
+                        const assignment = this.getAdvancedAssignment(employeeId, project.name, weekId, dayIndex);
+                        if (assignment) {
+                            total += assignment.load;
+                        }
+                    });
+                    
+                    return Math.round(total * 100);
+                },
+
+                toggleAdvancedAssignment(employeeId, projectName, weekId, dayIndex) {
+                    if (!this.assignments[employeeId]) {
+                        this.assignments[employeeId] = {};
+                    }
+                    if (!this.assignments[employeeId][weekId]) {
+                        this.assignments[employeeId][weekId] = {};
+                    }
+                    
+                    const current = this.getAdvancedAssignment(employeeId, projectName, weekId, dayIndex);
+                    
+                    if (!current) {
+                        // Assign to 50%
+                        this.assignments[employeeId][weekId][dayIndex] = {
+                            project: projectName,
+                            load: 0.5
+                        };
+                    } else if (current.load === 0.5) {
+                        // Switch to 100%
+                        current.load = 1;
+                    } else if (current.load === 1) {
+                        // Switch to 150% (overload)
+                        current.load = 1.5;
+                    } else {
+                        // Remove assignment
+                        delete this.assignments[employeeId][weekId][dayIndex];
+                    }
+                },
+
+                getAdvancedAssignment(employeeId, projectName, weekId, dayIndex) {
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    return (assignment && assignment.project === projectName) ? assignment : null;
+                },
+
+                getAdvancedCellClass(employeeId, projectName, weekId, dayIndex) {
+                    const assignment = this.getAdvancedAssignment(employeeId, projectName, weekId, dayIndex);
+                    if (!assignment) return '';
+                    
+                    if (assignment.load > 1) return 'overbooked';
+                    if (assignment.load >= 1) return 'assigned';
+                    if (assignment.load > 0) return 'partial';
+                    
+                    return '';
+                },
+
+                getAdvancedCellText(employeeId, projectName, weekId, dayIndex) {
+                    const assignment = this.getAdvancedAssignment(employeeId, projectName, weekId, dayIndex);
+                    if (!assignment) return '';
+                    
+                    const percentage = Math.round(assignment.load * 100);
+                    return percentage > 0 ? percentage + '%' : '';
+                },
+
+                getAdvancedCellTooltip(employeeId, projectName, weekId, dayIndex) {
+                    const employee = this.employees.find(e => e.id === employeeId);
+                    const assignment = this.getAdvancedAssignment(employeeId, projectName, weekId, dayIndex);
+                    
+                    if (!assignment) {
+                        return `${employee.name} - ${projectName} - Disponible`;
+                    }
+                    
+                    const percentage = Math.round(assignment.load * 100);
+                    return `${employee.name} - ${projectName} (${percentage}%)`;
+                },
+
+                getTotalMatchingProjects() {
+                    const allMatchingProjects = new Set();
+                    this.employees.forEach(employee => {
+                        const projects = this.getEmployeeProjectsBasedOnSkills(employee.id);
+                        projects.forEach(project => allMatchingProjects.add(project.id));
+                    });
+                    return allMatchingProjects.size;
                 }
             };
         }

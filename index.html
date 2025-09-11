@@ -1011,7 +1011,7 @@
                                             <template x-for="(day, dayIndex) in week.days" :key="'cell-' + week.id + '-' + day.index">
                                                 <td class="planning-cell"
                                                     :class="getCellClass(employee.id, week.id, dayIndex)"
-                                                    @click="toggleAssignment(employee.id, week.id, dayIndex)"
+                                                    @click="toggleProjectAssignment(employee.id, week.id, dayIndex)"
                                                     :title="getCellTooltip(employee.id, week.id, dayIndex)"
                                                     x-text="getCellDisplay(employee.id, week.id, dayIndex)">
                                                 </td>
@@ -1366,7 +1366,7 @@
                 employees: [],
                 projects: [],
                 skills: [],
-                assignments: {}, // Structure: {employeeId: {weekId: {dayIndex: {project: 'nom', load: 0.5}}}}
+                assignments: {}, // Structure: {employeeId: {weekId: {dayIndex: {projectName: {load: 0.5}}}}}
                 planningWeeks: [],
                 showEmployeeModal: false,
                 showProjectModal: false,
@@ -1617,10 +1617,18 @@
                                     
                                     // Only include days within the next 60 days
                                     if (dayDate >= today && dayDate <= endDate) {
-                                        const assignment = this.assignments[employeeId][week.id][dayIndex];
-                                        if (assignment && assignment.load) {
-                                            totalLoad += assignment.load;
+                                        const dayAssignments = this.assignments[employeeId][week.id][dayIndex];
+                                        let dayTotalLoad = 0;
+                                        
+                                        if (dayAssignments && typeof dayAssignments === 'object') {
+                                            Object.values(dayAssignments).forEach(assignment => {
+                                                if (assignment && typeof assignment.load === 'number') {
+                                                    dayTotalLoad += assignment.load;
+                                                }
+                                            });
                                         }
+                                        
+                                        totalLoad += dayTotalLoad;
                                         totalDays++;
                                     }
                                 }
@@ -1632,7 +1640,8 @@
                     
                     // Calculate average load as percentage
                     const avgLoad = (totalLoad / totalDays) * 100;
-                    return Math.round(avgLoad);
+                    const result = Math.round(avgLoad);
+                    return isNaN(result) ? 0 : result;
                 },
 
                 resetEmployeeForm() {
@@ -1704,31 +1713,62 @@
                 },
 
                 getPlanningCellClass(employeeId, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
-                    if (!assignment) return 'planning-cell';
+                    const dayAssignments = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    if (!dayAssignments || Object.keys(dayAssignments).length === 0) return 'planning-cell';
                     
-                    if (assignment.load > 1) return 'planning-cell overbooked';
-                    if (assignment.load >= 1) return 'planning-cell assigned';
-                    if (assignment.load > 0) return 'planning-cell partial';
+                    // Calculate total load for the day
+                    let totalLoad = 0;
+                    Object.values(dayAssignments).forEach(assignment => {
+                        if (assignment && typeof assignment.load === 'number') {
+                            totalLoad += assignment.load;
+                        }
+                    });
+                    
+                    if (totalLoad > 1) return 'planning-cell overbooked';
+                    if (totalLoad >= 1) return 'planning-cell assigned';
+                    if (totalLoad > 0) return 'planning-cell partial';
                     
                     return 'planning-cell';
                 },
 
                 getPlanningCellText(employeeId, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
-                    if (!assignment) return '';
+                    const dayAssignments = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    if (!dayAssignments || Object.keys(dayAssignments).length === 0) return '';
                     
-                    const percentage = Math.round(assignment.load * 100);
+                    // Calculate total load for the day
+                    let totalLoad = 0;
+                    Object.values(dayAssignments).forEach(assignment => {
+                        if (assignment && typeof assignment.load === 'number') {
+                            totalLoad += assignment.load;
+                        }
+                    });
+                    
+                    const percentage = Math.round(totalLoad * 100);
                     return percentage > 0 ? percentage + '%' : '';
                 },
 
                 getPlanningCellTooltip(employeeId, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const dayAssignments = this.assignments[employeeId]?.[weekId]?.[dayIndex];
                     const employee = this.employees.find(e => e.id === employeeId);
                     
-                    if (!assignment) return `${employee.name} - Disponible`;
+                    if (!dayAssignments || Object.keys(dayAssignments).length === 0) {
+                        return `${employee.name} - Disponible`;
+                    }
                     
-                    return `${employee.name} - ${assignment.project} (${Math.round(assignment.load * 100)}%)`;
+                    // Build tooltip showing all projects for this day
+                    const projectList = [];
+                    let totalLoad = 0;
+                    
+                    Object.entries(dayAssignments).forEach(([projectName, assignment]) => {
+                        if (assignment && typeof assignment.load === 'number') {
+                            totalLoad += assignment.load;
+                            const percentage = Math.round(assignment.load * 100);
+                            projectList.push(`${projectName} (${percentage}%)`);
+                        }
+                    });
+                    
+                    const totalPercentage = Math.round(totalLoad * 100);
+                    return `${employee.name} - ${projectList.join(', ')} - Total: ${totalPercentage}%`;
                 },
 
                 toggleAssignment(employeeId, weekId, dayIndex) {
@@ -1738,30 +1778,47 @@
                     if (!this.assignments[employeeId][weekId]) {
                         this.assignments[employeeId][weekId] = {};
                     }
+                    if (!this.assignments[employeeId][weekId][dayIndex]) {
+                        this.assignments[employeeId][weekId][dayIndex] = {};
+                    }
                     
-                    const current = this.assignments[employeeId][weekId][dayIndex];
+                    const projectName = 'Projet Demo';
+                    const currentProjectAssignment = this.assignments[employeeId][weekId][dayIndex][projectName];
                     
-                    if (!current) {
-                        // Assigner à 50%
-                        this.assignments[employeeId][weekId][dayIndex] = {
-                            project: 'Projet Demo',
+                    if (!currentProjectAssignment) {
+                        // Assign to 50%
+                        this.assignments[employeeId][weekId][dayIndex][projectName] = {
                             load: 0.5
                         };
-                    } else if (current.load === 0.5) {
-                        // Passer à 100%
-                        current.load = 1;
-                    } else if (current.load === 1) {
-                        // Passer à surcharge 150%
-                        current.load = 1.5;
+                    } else if (currentProjectAssignment.load === 0.5) {
+                        // Switch to 100%
+                        currentProjectAssignment.load = 1;
+                    } else if (currentProjectAssignment.load === 1) {
+                        // Switch to 150% overload
+                        currentProjectAssignment.load = 1.5;
                     } else {
-                        // Remettre à disponible
-                        delete this.assignments[employeeId][weekId][dayIndex];
+                        // Remove assignment (cycling back to 0%)
+                        delete this.assignments[employeeId][weekId][dayIndex][projectName];
+                        
+                        // Clean up empty objects
+                        if (Object.keys(this.assignments[employeeId][weekId][dayIndex]).length === 0) {
+                            delete this.assignments[employeeId][weekId][dayIndex];
+                        }
+                        if (Object.keys(this.assignments[employeeId][weekId]).length === 0) {
+                            delete this.assignments[employeeId][weekId];
+                        }
+                        if (Object.keys(this.assignments[employeeId]).length === 0) {
+                            delete this.assignments[employeeId];
+                        }
                     }
                 },
 
                 // Functions for Project Detail View
                 getCellClass(employeeId, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const project = this.projects.find(p => p.id === this.currentProjectId);
+                    if (!project) return '';
+                    
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex]?.[project.name];
                     if (!assignment) return '';
                     
                     if (assignment.load > 1) return 'overbooked';
@@ -1772,20 +1829,68 @@
                 },
 
                 getCellTooltip(employeeId, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const project = this.projects.find(p => p.id === this.currentProjectId);
                     const employee = this.employees.find(e => e.id === employeeId);
+                    
+                    if (!project) return `${employee.name} - Projet non trouvé`;
+                    
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex]?.[project.name];
                     
                     if (!assignment) return `${employee.name} - Disponible`;
                     
-                    return `${employee.name} - ${assignment.project} (${Math.round(assignment.load * 100)}%)`;
+                    return `${employee.name} - ${project.name} (${Math.round(assignment.load * 100)}%)`;
                 },
 
                 getCellDisplay(employeeId, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const project = this.projects.find(p => p.id === this.currentProjectId);
+                    if (!project) return '';
+                    
+                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex]?.[project.name];
                     if (!assignment) return '';
                     
                     const percentage = Math.round(assignment.load * 100);
                     return percentage > 0 ? percentage + '%' : '';
+                },
+
+                toggleProjectAssignment(employeeId, weekId, dayIndex) {
+                    const project = this.projects.find(p => p.id === this.currentProjectId);
+                    if (!project) return;
+                    
+                    if (!this.assignments[employeeId]) {
+                        this.assignments[employeeId] = {};
+                    }
+                    if (!this.assignments[employeeId][weekId]) {
+                        this.assignments[employeeId][weekId] = {};
+                    }
+                    if (!this.assignments[employeeId][weekId][dayIndex]) {
+                        this.assignments[employeeId][weekId][dayIndex] = {};
+                    }
+                    
+                    const currentProjectAssignment = this.assignments[employeeId][weekId][dayIndex][project.name];
+                    
+                    if (!currentProjectAssignment) {
+                        // Assign to 50%
+                        this.assignments[employeeId][weekId][dayIndex][project.name] = {
+                            load: 0.5
+                        };
+                    } else if (currentProjectAssignment.load === 0.5) {
+                        // Switch to 100%
+                        currentProjectAssignment.load = 1;
+                    } else if (currentProjectAssignment.load === 1) {
+                        // Remove assignment (cycling back to 0%)
+                        delete this.assignments[employeeId][weekId][dayIndex][project.name];
+                        
+                        // Clean up empty objects
+                        if (Object.keys(this.assignments[employeeId][weekId][dayIndex]).length === 0) {
+                            delete this.assignments[employeeId][weekId][dayIndex];
+                        }
+                        if (Object.keys(this.assignments[employeeId][weekId]).length === 0) {
+                            delete this.assignments[employeeId][weekId];
+                        }
+                        if (Object.keys(this.assignments[employeeId]).length === 0) {
+                            delete this.assignments[employeeId];
+                        }
+                    }
                 },
 
                 getAssignedEmployeesCount(projectName) {
@@ -1795,8 +1900,8 @@
                     Object.keys(this.assignments).forEach(employeeId => {
                         Object.keys(this.assignments[employeeId]).forEach(weekId => {
                             Object.keys(this.assignments[employeeId][weekId]).forEach(dayIndex => {
-                                const assignment = this.assignments[employeeId][weekId][dayIndex];
-                                if (assignment && assignment.project === projectName) {
+                                const dayAssignments = this.assignments[employeeId][weekId][dayIndex];
+                                if (dayAssignments && dayAssignments[projectName]) {
                                     assignedEmployees.add(parseInt(employeeId));
                                 }
                             });
@@ -1861,8 +1966,8 @@
                         Object.keys(this.assignments).forEach(employeeId => {
                             Object.keys(this.assignments[employeeId]).forEach(weekId => {
                                 Object.keys(this.assignments[employeeId][weekId]).forEach(dayIndex => {
-                                    const assignment = this.assignments[employeeId][weekId][dayIndex];
-                                    if (assignment && assignment.project === project.name) {
+                                    const dayAssignments = this.assignments[employeeId][weekId][dayIndex];
+                                    if (dayAssignments && dayAssignments[project.name]) {
                                         currentlyAssigned.add(parseInt(employeeId));
                                     }
                                 });
@@ -1956,8 +2061,13 @@
                                     const project = this.projects[Math.floor(Math.random() * this.projects.length)];
                                     const load = Math.random() > 0.7 ? 1 : 0.5; // 30% chance de 100%, 70% de 50%
                                     
-                                    this.assignments[emp.id][week.id][dayIndex] = {
-                                        project: project.name,
+                                    // Initialize day assignments if not exists
+                                    if (!this.assignments[emp.id][week.id][dayIndex]) {
+                                        this.assignments[emp.id][week.id][dayIndex] = {};
+                                    }
+                                    
+                                    // Assign to project with new structure
+                                    this.assignments[emp.id][week.id][dayIndex][project.name] = {
                                         load: load
                                     };
                                     
@@ -1979,14 +2089,20 @@
                     let employeeCount = 0;
                     
                     this.employees.forEach(emp => {
-                        const assignment = this.assignments[emp.id]?.[weekId]?.[dayIndex];
-                        if (assignment) {
-                            totalLoad += assignment.load;
+                        const dayAssignments = this.assignments[emp.id]?.[weekId]?.[dayIndex];
+                        if (dayAssignments && typeof dayAssignments === 'object') {
+                            // Sum up all project loads for this employee on this day
+                            Object.values(dayAssignments).forEach(assignment => {
+                                if (assignment && typeof assignment.load === 'number') {
+                                    totalLoad += assignment.load;
+                                }
+                            });
                         }
                         employeeCount++;
                     });
                     
-                    return employeeCount > 0 ? Math.round((totalLoad / employeeCount) * 100) : 0;
+                    const avgWorkload = employeeCount > 0 ? Math.round((totalLoad / employeeCount) * 100) : 0;
+                    return isNaN(avgWorkload) ? 0 : avgWorkload;
                 },
 
                 getAverageUtilization() {
@@ -2010,15 +2126,26 @@
                                 
                                 // Only include days within the next 60 days
                                 if (dayDate >= today && dayDate <= endDate) {
-                                    const assignment = this.assignments[emp.id]?.[week.id]?.[day];
-                                    totalLoad += assignment ? assignment.load : 0;
+                                    const dayAssignments = this.assignments[emp.id]?.[week.id]?.[day];
+                                    let dayTotalLoad = 0;
+                                    
+                                    if (dayAssignments && typeof dayAssignments === 'object') {
+                                        Object.values(dayAssignments).forEach(assignment => {
+                                            if (assignment && typeof assignment.load === 'number') {
+                                                dayTotalLoad += assignment.load;
+                                            }
+                                        });
+                                    }
+                                    
+                                    totalLoad += dayTotalLoad;
                                     totalSlots++;
                                 }
                             }
                         });
                     });
                     
-                    return totalSlots > 0 ? Math.round((totalLoad / totalSlots) * 100) : 0;
+                    const avgUtilization = totalSlots > 0 ? Math.round((totalLoad / totalSlots) * 100) : 0;
+                    return isNaN(avgUtilization) ? 0 : avgUtilization;
                 },
 
                 getOverloadedDays() {
@@ -2027,8 +2154,18 @@
                     this.employees.forEach(emp => {
                         this.planningWeeks.forEach(week => {
                             for (let day = 0; day < 7; day++) {
-                                const assignment = this.assignments[emp.id]?.[week.id]?.[day];
-                                if (assignment && assignment.load > 1) {
+                                const dayAssignments = this.assignments[emp.id]?.[week.id]?.[day];
+                                let dayTotalLoad = 0;
+                                
+                                if (dayAssignments && typeof dayAssignments === 'object') {
+                                    Object.values(dayAssignments).forEach(assignment => {
+                                        if (assignment && typeof assignment.load === 'number') {
+                                            dayTotalLoad += assignment.load;
+                                        }
+                                    });
+                                }
+                                
+                                if (dayTotalLoad > 1) {
                                     overloadedCount++;
                                 }
                             }
@@ -2068,9 +2205,12 @@
                     // Parcourir toutes les affectations pour trouver les projets assignés à cet employé
                     Object.keys(this.assignments[employeeId] || {}).forEach(weekId => {
                         Object.keys(this.assignments[employeeId][weekId] || {}).forEach(dayIndex => {
-                            const assignment = this.assignments[employeeId][weekId][dayIndex];
-                            if (assignment && assignment.project) {
-                                assignedProjects.add(assignment.project);
+                            const dayAssignments = this.assignments[employeeId][weekId][dayIndex];
+                            if (dayAssignments) {
+                                // Add all projects assigned on this day
+                                Object.keys(dayAssignments).forEach(projectName => {
+                                    assignedProjects.add(projectName);
+                                });
                             }
                         });
                     });
@@ -2120,19 +2260,14 @@
                     if (!employee) return [];
                     
                     const employeeSkillIds = new Set(employee.skills.map(skill => skill.skillId));
-                    console.log(`Employee ${employee.name} has skill IDs:`, Array.from(employeeSkillIds));
                     
                     return this.projects.filter(project => {
                         // Check if project has skill requirements
                         if (project.skillRequirements && project.skillRequirements.length > 0) {
                             // New format - check skillRequirements
-                            const match = project.skillRequirements.some(skillReq => {
-                                const hasSkill = employeeSkillIds.has(skillReq.skillId);
-                                console.log(`Project ${project.name} requires skill ID ${skillReq.skillId} (type: ${typeof skillReq.skillId}), employee has it: ${hasSkill}`);
-                                return hasSkill;
-                            });
-                            console.log(`Project ${project.name} match result: ${match}`);
-                            return match;
+                            return project.skillRequirements.some(skillReq => 
+                                employeeSkillIds.has(skillReq.skillId)
+                            );
                         } else if (project.requiredSkills && project.requiredSkills.length > 0) {
                             // Legacy format - check requiredSkills (skill names)
                             return project.requiredSkills.some(skillName => {
@@ -2146,20 +2281,19 @@
 
                 getEmployeeDayTotal(employeeId, weekId, dayIndex) {
                     let total = 0;
-                    const employeeAssignments = this.assignments[employeeId]?.[weekId]?.[dayIndex];
+                    const dayAssignments = this.assignments[employeeId]?.[weekId]?.[dayIndex];
                     
-                    // Get all projects for this employee
-                    const employeeProjects = this.getEmployeeProjectsBasedOnSkills(employeeId);
+                    if (dayAssignments && typeof dayAssignments === 'object') {
+                        // Sum up loads for all projects assigned on this day
+                        Object.values(dayAssignments).forEach(assignment => {
+                            if (assignment && typeof assignment.load === 'number') {
+                                total += assignment.load;
+                            }
+                        });
+                    }
                     
-                    // Sum up loads for all projects this employee is assigned to on this day
-                    employeeProjects.forEach(project => {
-                        const assignment = this.getAdvancedAssignment(employeeId, project.name, weekId, dayIndex);
-                        if (assignment) {
-                            total += assignment.load;
-                        }
-                    });
-                    
-                    return Math.round(total * 100);
+                    const percentage = Math.round(total * 100);
+                    return isNaN(percentage) ? 0 : percentage;
                 },
 
                 toggleAdvancedAssignment(employeeId, projectName, weekId, dayIndex) {
@@ -2169,30 +2303,80 @@
                     if (!this.assignments[employeeId][weekId]) {
                         this.assignments[employeeId][weekId] = {};
                     }
+                    if (!this.assignments[employeeId][weekId][dayIndex]) {
+                        this.assignments[employeeId][weekId][dayIndex] = {};
+                    }
                     
-                    const current = this.getAdvancedAssignment(employeeId, projectName, weekId, dayIndex);
+                    const currentProjectAssignment = this.assignments[employeeId][weekId][dayIndex][projectName];
                     
-                    if (!current) {
+                    if (!currentProjectAssignment) {
+                        // Find the project by name to get its ID
+                        const project = this.projects.find(p => p.name === projectName);
+                        if (project) {
+                            // Add employee to project's employee list if not already there
+                            if (!this.projectEmployees[project.id]) {
+                                this.projectEmployees[project.id] = [];
+                            }
+                            const employeeIdInt = parseInt(employeeId);
+                            if (!this.projectEmployees[project.id].includes(employeeIdInt)) {
+                                this.projectEmployees[project.id].push(employeeIdInt);
+                            }
+                        }
+                        
                         // Assign to 50%
-                        this.assignments[employeeId][weekId][dayIndex] = {
-                            project: projectName,
+                        this.assignments[employeeId][weekId][dayIndex][projectName] = {
                             load: 0.5
                         };
-                    } else if (current.load === 0.5) {
+                    } else if (currentProjectAssignment.load === 0.5) {
                         // Switch to 100%
-                        current.load = 1;
-                    } else if (current.load === 1) {
-                        // Switch to 150% (overload)
-                        current.load = 1.5;
-                    } else {
-                        // Remove assignment
-                        delete this.assignments[employeeId][weekId][dayIndex];
+                        currentProjectAssignment.load = 1;
+                    } else if (currentProjectAssignment.load === 1) {
+                        // Remove assignment (cycling back to 0%)
+                        delete this.assignments[employeeId][weekId][dayIndex][projectName];
+                        
+                        // Clean up empty objects
+                        if (Object.keys(this.assignments[employeeId][weekId][dayIndex]).length === 0) {
+                            delete this.assignments[employeeId][weekId][dayIndex];
+                        }
+                        if (Object.keys(this.assignments[employeeId][weekId]).length === 0) {
+                            delete this.assignments[employeeId][weekId];
+                        }
+                        if (Object.keys(this.assignments[employeeId]).length === 0) {
+                            delete this.assignments[employeeId];
+                        }
+                        
+                        // Check if employee should be removed from project's employee list
+                        // Only remove if they have no more assignments to this project
+                        const project = this.projects.find(p => p.name === projectName);
+                        if (project) {
+                            const hasOtherAssignments = this.employeeHasAssignmentsToProject(employeeId, projectName);
+                            if (!hasOtherAssignments && this.projectEmployees[project.id]) {
+                                const employeeIdInt = parseInt(employeeId);
+                                const index = this.projectEmployees[project.id].indexOf(employeeIdInt);
+                                if (index > -1) {
+                                    this.projectEmployees[project.id].splice(index, 1);
+                                }
+                            }
+                        }
                     }
                 },
 
+                employeeHasAssignmentsToProject(employeeId, projectName) {
+                    const employeeAssignments = this.assignments[employeeId];
+                    if (!employeeAssignments) return false;
+                    
+                    for (const weekId in employeeAssignments) {
+                        for (const dayIndex in employeeAssignments[weekId]) {
+                            if (employeeAssignments[weekId][dayIndex][projectName]) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                },
+
                 getAdvancedAssignment(employeeId, projectName, weekId, dayIndex) {
-                    const assignment = this.assignments[employeeId]?.[weekId]?.[dayIndex];
-                    return (assignment && assignment.project === projectName) ? assignment : null;
+                    return this.assignments[employeeId]?.[weekId]?.[dayIndex]?.[projectName] || null;
                 },
 
                 getAdvancedCellClass(employeeId, projectName, weekId, dayIndex) {

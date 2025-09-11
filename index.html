@@ -1502,18 +1502,24 @@
                         return;
                     }
 
-                    // Convert skill IDs to skill names for backward compatibility
+                    // Convert skill IDs to skill names for backward compatibility and ensure skillId is a number
                     const skillNames = validSkills.map(skillReq => {
                         const skill = this.skills.find(s => s.id == skillReq.skillId);
                         return skill ? skill.name : '';
                     }).filter(name => name !== '');
+
+                    // Ensure skillId is a number in the skill requirements
+                    const normalizedSkillRequirements = validSkills.map(skillReq => ({
+                        skillId: parseInt(skillReq.skillId),
+                        manDays: skillReq.manDays
+                    }));
 
                     this.projects.push({
                         id: Date.now(),
                         name: this.newProject.name,
                         duration: this.newProject.duration,
                         requiredSkills: skillNames, // Keep backward compatibility
-                        skillRequirements: validSkills // New detailed structure
+                        skillRequirements: normalizedSkillRequirements // New detailed structure with normalized IDs
                     });
                     this.resetProjectForm();
                     this.showProjectModal = false;
@@ -2114,14 +2120,19 @@
                     if (!employee) return [];
                     
                     const employeeSkillIds = new Set(employee.skills.map(skill => skill.skillId));
+                    console.log(`Employee ${employee.name} has skill IDs:`, Array.from(employeeSkillIds));
                     
                     return this.projects.filter(project => {
                         // Check if project has skill requirements
                         if (project.skillRequirements && project.skillRequirements.length > 0) {
                             // New format - check skillRequirements
-                            return project.skillRequirements.some(skillReq => 
-                                employeeSkillIds.has(skillReq.skillId)
-                            );
+                            const match = project.skillRequirements.some(skillReq => {
+                                const hasSkill = employeeSkillIds.has(skillReq.skillId);
+                                console.log(`Project ${project.name} requires skill ID ${skillReq.skillId} (type: ${typeof skillReq.skillId}), employee has it: ${hasSkill}`);
+                                return hasSkill;
+                            });
+                            console.log(`Project ${project.name} match result: ${match}`);
+                            return match;
                         } else if (project.requiredSkills && project.requiredSkills.length > 0) {
                             // Legacy format - check requiredSkills (skill names)
                             return project.requiredSkills.some(skillName => {

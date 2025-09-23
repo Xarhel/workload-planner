@@ -1,4 +1,2 @@
 ## Known issues
-- Each employee can be assigned to one or multiple projects. EACH PROJECT HAS ITS OWN EMPLOYEE x LOAD association/link. Which means that if an employee is assigned 50% to one one project and 50% to another project, the "planning" view should display 100% for that same day. 
-- Create a view to display in a table: the list of all employees, days, and weeks, for each employee, the list of eligible projects based on the employee's skills
-    - working on it, the order of the lines isn't right, needs improvement
+- There seem to be a problem when I add a new skill from the "Skills" view. It is as if it isn't recognized correctly when I go to the projectAdvancedView view, as the employee with this skill isn't suggested.

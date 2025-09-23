@@ -1029,9 +1029,8 @@
             <div x-show="currentView === 'planning'" x-transition>
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3>📅 Planning des Ressources</h3>
+                        <h3>🔋 Occupation des ressources</h3>
                         <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-primary" @click="generateRandomAssignments()">Démo : générer Planning</button>
                             <button class="btn" @click="exportPlanning()">📊 Exporter</button>
                         </div>
                     </div>
@@ -1141,7 +1140,7 @@
             <div x-show="currentView === 'advanced-planning'" x-transition>
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3>🎯 Planification Avancée par Projet</h3>
+                        <h3>🎯 Planification Avancée</h3>
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="btn btn-primary" @click="generateRandomAssignments()">Démo : générer Planning</button>
                             <button class="btn" @click="exportPlanning()">📊 Exporter</button>
@@ -1468,6 +1467,27 @@
                                 { skillId: 5, manDays: 10 }, // Django
                                 { skillId: 6, manDays: 8 }   // PostgreSQL
                             ]
+                        },
+                        { 
+                            id: 3, 
+                            name: 'Application Mobile Web', 
+                            duration: 35, 
+                            requiredSkills: ['JavaScript', 'CSS', 'Design'],
+                            skillRequirements: [
+                                { skillId: 1, manDays: 18 }, // JavaScript
+                                { skillId: 9, manDays: 12 }, // CSS
+                                { skillId: 7, manDays: 5 }   // Design
+                            ]
+                        },
+                        { 
+                            id: 4, 
+                            name: 'Dashboard Analytics', 
+                            duration: 25, 
+                            requiredSkills: ['JavaScript', 'Node.js'],
+                            skillRequirements: [
+                                { skillId: 1, manDays: 15 }, // JavaScript
+                                { skillId: 3, manDays: 10 }  // Node.js
+                            ]
                         }
                     ];
 
@@ -1485,10 +1505,16 @@
                         return;
                     }
                     
+                    // Ensure skillId is stored as a number to match the skills array
+                    const normalizedSkills = validSkills.map(skill => ({
+                        skillId: parseInt(skill.skillId),
+                        level: skill.level
+                    }));
+                    
                     this.employees.push({
                         id: Date.now(),
                         name: this.newEmployee.name,
-                        skills: validSkills
+                        skills: normalizedSkills
                     });
                     this.resetEmployeeForm();
                     this.showEmployeeModal = false;
@@ -2018,14 +2044,14 @@
                     // Find employees who have at least one matching skill
                     return this.employees.filter(employee => {
                         return employee.skills.some(empSkill => 
-                            requiredSkillIds.has(empSkill.skillId)
+                            requiredSkillIds.has(parseInt(empSkill.skillId))
                         );
                     }).map(employee => {
                         // Add skill match info for display
                         const matchingSkills = employee.skills.filter(empSkill => 
-                            requiredSkillIds.has(empSkill.skillId)
+                            requiredSkillIds.has(parseInt(empSkill.skillId))
                         ).map(empSkill => {
-                            const skill = this.skills.find(s => s.id === empSkill.skillId);
+                            const skill = this.skills.find(s => s.id == empSkill.skillId);
                             return skill ? `${skill.name} (${empSkill.level})` : '';
                         }).filter(name => name !== '');
                         
